@@ -109,7 +109,7 @@ When a task is approved into `.agentboard/done/`:
 
 # Loop Safety
 
-During a single workflow-runner session, process no more than 10 task transitions unless the user explicitly allows more.
+During a single workflow-runner session, process no more than 20 task transitions unless the user explicitly allows more.
 
 A task transition includes:
 - moving a task from ready to in-progress
