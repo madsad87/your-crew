@@ -22,6 +22,44 @@ The Markdown task system is the single source of truth for all agent coordinatio
 
 ---
 
+# Instruction Hierarchy
+
+Agents must apply instructions in this order:
+
+1. User instructions for the current task.
+2. `AGENTS.md` for global AgentBoard protocol.
+3. `.agentboard/agents/{assigned_agent}.md` for role-specific behavior.
+4. The active task file for objective, scope, acceptance criteria, dependencies, and completion requirements.
+5. Referenced artifacts and project files for task-specific context.
+
+`AGENTS.md` defines shared workflow rules, task lifecycle, status/folder alignment, claiming, completion, review, dependency unlocking, artifact handling, validation, and definition of done.
+
+Individual role files define how each agent behaves inside that global protocol. They should not duplicate the full protocol.
+
+---
+
+# Conversational Entry Point
+
+The orchestrator is the default conversational entry point for the system during normal use.
+
+Users should not need to manually address specialist agents by saying "act as builder", "act as reviewer", or "act as workflow-runner" during normal use.
+
+When the user gives an instruction, the orchestrator must decide whether to:
+
+- create new tasks
+- clarify requirements
+- inspect board status
+- delegate execution to the workflow-runner
+- summarize current progress
+
+The orchestrator may delegate to the workflow-runner when actionable tasks exist in `.agentboard/ready/` or `.agentboard/review/`, or when the user asks to continue existing board work.
+
+The orchestrator should not require the user to say "act as workflow-runner" during normal operation.
+
+Workflow execution remains sequential by default. Parallel execution, cron jobs, and background automation are outside the current protocol unless a future task explicitly adds them.
+
+---
+
 # Core Workflow
 
 Tasks move through these stages:
@@ -120,78 +158,25 @@ Agents should prefer clarity and maintainability over cleverness.
 
 ## Orchestrator Agent
 
-Responsibilities:
-- Interpret user requests.
-- Break work into atomic tasks.
-- Assign tasks to the correct agents.
-- Define acceptance criteria.
-- Identify blockers and dependencies.
-- Prevent duplicate or conflicting work.
-- Maintain overall workflow coordination.
-- Keep tasks small, actionable, and reviewable.
+Creates clear, dependency-aware tasks from user requests and places them in the correct board folders.
 
-The orchestrator should:
-- Prefer multiple small tasks over large ambiguous tasks.
-- Create clarification tasks when requirements are unclear.
-- Avoid implementation unless explicitly instructed.
-- Place the first actionable task in `.agentboard/ready/` when dependencies are satisfied.
-- Place dependent tasks in `.agentboard/inbox/` or `.agentboard/blocked/` until dependencies are satisfied.
-
-The orchestrator should NOT:
-- Perform large code changes.
-- Modify unrelated files.
-- Create vague tasks.
-- Circumvent the Kanban workflow.
+Detailed behavior lives in `.agentboard/agents/orchestrator.md`.
 
 ---
 
 ## Builder Agent
 
-Responsibilities:
-- Implement functionality.
-- Modify application code.
-- Complete implementation tasks.
-- Document implementation details.
-- Report blockers immediately.
-- Maintain code quality and consistency.
+Implements assigned tasks with focused changes, validates the work, and moves completed work to review.
 
-The builder should:
-- Avoid scope creep.
-- Avoid unnecessary refactors.
-- Avoid speculative architecture changes.
-- Avoid adding dependencies unless required.
-- Make the minimum safe change necessary.
-
-The builder must:
-- Update completion notes before moving tasks.
-- Clearly document modified files.
-- Report incomplete or risky implementations.
-- Reference any artifacts used as inputs.
+Detailed behavior lives in `.agentboard/agents/builder.md`.
 
 ---
 
 ## Reviewer Agent
 
-Responsibilities:
-- Review completed work.
-- Validate acceptance criteria.
-- Check for regressions.
-- Confirm task completeness.
-- Approve or reject completed tasks.
-- Verify implementation quality.
-- Unlock dependent tasks when prerequisites are approved.
+Validates completed work, approves tasks into done, documents required fixes, and unlocks dependencies.
 
-The reviewer may:
-- Return tasks to `.agentboard/ready/`.
-- Move tasks to `.agentboard/blocked/`.
-- Approve tasks into `.agentboard/done/`.
-- Move newly unblocked dependent tasks into `.agentboard/ready/`.
-
-The reviewer should:
-- Be skeptical and detail-oriented.
-- Prevent incomplete work from being marked complete.
-- Ensure changes align with project standards.
-- Document concrete change requests when rejecting work.
+Detailed behavior lives in `.agentboard/agents/reviewer.md`.
 
 Reviewer outcomes:
 
@@ -205,46 +190,17 @@ After approving a task, reviewers must inspect `.agentboard/inbox/` and `.agentb
 
 ## Content Creator Agent
 
-Responsibilities:
-- Write documentation.
-- Create marketing copy.
-- Generate SEO content.
-- Update changelogs.
-- Produce user-facing text.
-- Improve clarity and readability.
+Produces documentation, content, copy, and reusable Markdown artifacts for assigned tasks.
 
-The content creator should:
-- Match the tone defined in `project-profile.md`.
-- Prioritize clarity and usefulness.
-- Avoid modifying functional code unless explicitly instructed.
-- Save reusable content outputs as artifacts in `.agentboard/artifacts/`.
+Detailed behavior lives in `.agentboard/agents/content-creator.md`.
 
 ---
 
 ## Workflow Runner Agent
 
-Responsibilities:
-- Advance the AgentBoard workflow across multiple roles.
-- Process `.agentboard/review/` before `.agentboard/ready/`.
-- Temporarily adopt the reviewer role for review tasks.
-- Temporarily adopt the assigned agent role for ready tasks.
-- Claim ready tasks before working on them.
-- Move completed implementation/content/orchestration tasks to review.
-- Review completed work before moving it to done.
-- Unlock dependent tasks when prerequisites are approved.
+Advances the board across roles by processing review tasks before ready tasks until no actionable work remains or a blocker is reached.
 
-The workflow runner should:
-- Continue until no actionable ready or review tasks remain.
-- Stop when a blocker requires user input.
-- Stop when requirements are unclear.
-- Stop before risky or destructive changes.
-- Summarize all tasks completed, reviewed, unlocked, blocked, and changed.
-
-The workflow runner should NOT:
-- Skip review.
-- Move implementation work directly to done.
-- Work on tasks with incomplete dependencies.
-- Invent new feature work unless explicitly instructed.
+Detailed behavior lives in `.agentboard/agents/workflow-runner.md`.
 
 ---
 

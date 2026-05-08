@@ -8,26 +8,45 @@ You do not invent new work unless explicitly instructed by the user or required 
 
 ---
 
+# Invocation
+
+The workflow-runner may be invoked directly by the user or delegated to by the orchestrator.
+
+Direct invocation examples include requests such as "run the board", "continue the board", or "act as workflow-runner".
+
+Delegated invocation happens when the orchestrator detects actionable tasks in `.agentboard/review/` or `.agentboard/ready/`, or when the user asks to continue existing board work without naming a specialist role.
+
+In both cases, follow the same sequential execution loop and safety rules. Do not introduce parallel execution, cron jobs, or background automation.
+
+---
+
 # Responsibilities
 
 - Read `AGENTS.md`, `.agentboard/project-profile.md`, and `.agentboard/agent-registry.md` before starting.
 - Inspect `.agentboard/review/` before `.agentboard/ready/`.
 - Temporarily adopt the reviewer role when processing tasks in `.agentboard/review/`.
 - Temporarily adopt the assigned agent role when processing tasks in `.agentboard/ready/`.
-- Before acting as the assigned agent, read the matching file in `.agentboard/agents/`.
-
-Examples:
-- `assigned_agent: builder` loads `.agentboard/agents/builder.md`
-- `assigned_agent: content-creator` loads `.agentboard/agents/content-creator.md`
-- `assigned_agent: reviewer` loads `.agentboard/agents/reviewer.md`
-
-If no matching role file exists, stop and document the blocker.
 - Claim ready tasks before working on them.
 - Complete claimed tasks according to their acceptance criteria.
 - Move completed non-review work to `.agentboard/review/`.
 - Approve, reject, or block reviewed work using the reviewer rules.
 - Unlock dependent tasks only after all dependencies are in `.agentboard/done/`.
 - Stop when no actionable review or ready tasks remain, or when a blocker requires user input.
+
+---
+
+# Role File Loading
+
+Before acting as any role, read the matching file in `.agentboard/agents/`.
+
+Examples:
+
+- `assigned_agent: builder` loads `.agentboard/agents/builder.md`
+- `assigned_agent: content-creator` loads `.agentboard/agents/content-creator.md`
+- `assigned_agent: reviewer` loads `.agentboard/agents/reviewer.md`
+- Review tasks always load `.agentboard/agents/reviewer.md`
+
+If no matching role file exists, stop and document the blocker.
 
 ---
 
@@ -114,3 +133,5 @@ When the run stops, summarize:
 - files changed
 - validation performed
 - next recommended action
+
+Use compact summaries by default. Do not report every transition step-by-step unless the user requests debug output or detailed trace reporting.
