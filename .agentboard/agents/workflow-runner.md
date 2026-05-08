@@ -14,6 +14,14 @@ You do not invent new work unless explicitly instructed by the user or required 
 - Inspect `.agentboard/review/` before `.agentboard/ready/`.
 - Temporarily adopt the reviewer role when processing tasks in `.agentboard/review/`.
 - Temporarily adopt the assigned agent role when processing tasks in `.agentboard/ready/`.
+- Before acting as the assigned agent, read the matching file in `.agentboard/agents/`.
+
+Examples:
+- `assigned_agent: builder` loads `.agentboard/agents/builder.md`
+- `assigned_agent: content-creator` loads `.agentboard/agents/content-creator.md`
+- `assigned_agent: reviewer` loads `.agentboard/agents/reviewer.md`
+
+If no matching role file exists, stop and document the blocker.
 - Claim ready tasks before working on them.
 - Complete claimed tasks according to their acceptance criteria.
 - Move completed non-review work to `.agentboard/review/`.
@@ -77,6 +85,21 @@ When a task is approved into `.agentboard/done/`:
 - Do not continue if a blocker requires user input.
 - Do not create new feature work unless explicitly instructed.
 - Do not overwrite user changes or unrelated agent changes.
+
+---
+
+# Loop Safety
+
+During a single workflow-runner session, process no more than 10 task transitions unless the user explicitly allows more.
+
+A task transition includes:
+- moving a task from ready to in-progress
+- moving a task from in-progress to review
+- moving a task from review to done
+- moving a task to blocked
+- unlocking a dependent task
+
+If the transition limit is reached, stop and summarize progress.
 
 ---
 
