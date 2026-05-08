@@ -1,36 +1,21 @@
-\# Project Profile
+# Project Profile
 
-
-
-\## Project Type
+## Project Type
 
 Multi-agent Codex plugin
 
-
-
-\## Goal
+## Goal
 
 Create a Kanban-driven AI agent system for Codex.
 
+## Tech Stack
 
+- Markdown
+- Node.js
+- Codex
 
-\## Tech Stack
+## Constraints
 
-\- Markdown
-
-\- Node.js
-
-\- Codex
-
-
-
-\## Constraints
-
-\- Workflow agnostic
-
-\- Markdown-first
-
-\- Minimal dependencies
-
-
-
+- Workflow agnostic
+- Markdown-first
+- Minimal dependencies

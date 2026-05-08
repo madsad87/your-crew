@@ -90,6 +90,10 @@ Agents must reference any created artifacts in the task Completion Notes.
 
 Task files remain the source of truth for workflow status.
 
+Reusable deliverables should be created directly under `.agentboard/artifacts/` unless the task explicitly requires another location. Artifact filenames should include the task ID.
+
+Artifacts may support implementation or review, but they do not replace task acceptance criteria, workflow status, or completion notes.
+
 ---
 
 # Global Agent Rules
@@ -189,6 +193,14 @@ The reviewer should:
 - Ensure changes align with project standards.
 - Document concrete change requests when rejecting work.
 
+Reviewer outcomes:
+
+- Approve: mark reviewer approval in completion notes, move the task to `.agentboard/done/`, and update `status: done`.
+- Request changes: document concrete change requests and leave the task in `.agentboard/review/` or move it to `.agentboard/ready/` when the next action is clear.
+- Block: document the blocker, move the task to `.agentboard/blocked/`, and update `status: blocked`.
+
+After approving a task, reviewers must inspect `.agentboard/inbox/` and `.agentboard/blocked/` for dependent tasks that are now unblocked.
+
 ---
 
 ## Content Creator Agent
@@ -206,6 +218,77 @@ The content creator should:
 - Prioritize clarity and usefulness.
 - Avoid modifying functional code unless explicitly instructed.
 - Save reusable content outputs as artifacts in `.agentboard/artifacts/`.
+
+---
+
+## Workflow Runner Agent
+
+Responsibilities:
+- Advance the AgentBoard workflow across multiple roles.
+- Process `.agentboard/review/` before `.agentboard/ready/`.
+- Temporarily adopt the reviewer role for review tasks.
+- Temporarily adopt the assigned agent role for ready tasks.
+- Claim ready tasks before working on them.
+- Move completed implementation/content/orchestration tasks to review.
+- Review completed work before moving it to done.
+- Unlock dependent tasks when prerequisites are approved.
+
+The workflow runner should:
+- Continue until no actionable ready or review tasks remain.
+- Stop when a blocker requires user input.
+- Stop when requirements are unclear.
+- Stop before risky or destructive changes.
+- Summarize all tasks completed, reviewed, unlocked, blocked, and changed.
+
+The workflow runner should NOT:
+- Skip review.
+- Move implementation work directly to done.
+- Work on tasks with incomplete dependencies.
+- Invent new feature work unless explicitly instructed.
+
+---
+
+# Claiming Tasks
+
+When an agent claims a task:
+
+- The task must be in `.agentboard/ready/`.
+- All dependencies listed in `depends_on` must already exist in `.agentboard/done/`.
+- Move the task file to `.agentboard/in-progress/`.
+- Update frontmatter `status` to `in-progress`.
+- If `claimed_by` exists, set it to the acting agent name.
+- If `claimed_at` exists, set it to the current date.
+
+Agents must not claim tasks assigned to another agent unless the user explicitly instructs them to temporarily act as that agent.
+
+---
+
+# Completing Tasks
+
+When an implementation, content, or orchestration task is complete:
+
+- Verify every acceptance criterion is satisfied.
+- Mark satisfied acceptance criteria with `[x]`.
+- Update the `# Completion Notes` section before moving the task.
+- Move the task file to `.agentboard/review/`.
+- Update frontmatter `status` to `review`.
+
+Agents must not move their own completed work directly to `.agentboard/done/`.
+
+---
+
+# Status And Folder Alignment
+
+Task frontmatter `status` must match the containing folder:
+
+- `.agentboard/inbox/` uses `status: inbox`.
+- `.agentboard/ready/` uses `status: ready`.
+- `.agentboard/in-progress/` uses `status: in-progress`.
+- `.agentboard/review/` uses `status: review`.
+- `.agentboard/done/` uses `status: done`.
+- `.agentboard/blocked/` uses `status: blocked`.
+
+When moving a task, update the file path and frontmatter status in the same change.
 
 ---
 
@@ -280,6 +363,34 @@ When creating or reviewing dependent tasks:
 - Tasks with incomplete dependencies should remain in `.agentboard/inbox/` or `.agentboard/blocked/`.
 - Reviewers may unlock dependent tasks after approving prerequisite work.
 - Agents must not work on tasks with unresolved dependencies.
+
+When unlocking a task:
+
+- Confirm every task ID in `depends_on` exists in `.agentboard/done/`.
+- Move the unlocked task to `.agentboard/ready/`.
+- Update frontmatter `status` to `ready`.
+- Leave tasks with unresolved dependencies untouched.
+
+---
+
+# Validation Rules
+
+Agents should run the most relevant validation available for the task.
+
+Validation may include:
+
+- Static file inspection.
+- Tests or build commands.
+- Browser or visual checks.
+- Link, schema, or formatting checks.
+- Manual comparison against approved artifacts.
+
+If expected tooling is unavailable, agents must:
+
+- Document the unavailable tool.
+- Perform the best practical fallback validation.
+- Record the fallback in completion notes.
+- Note any residual risk for the reviewer.
 
 ---
 

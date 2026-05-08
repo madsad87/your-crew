@@ -1,102 +1,51 @@
-\---
-
+---
 id: TASK-0000
-
 title: ""
-
 status: inbox
-
-assigned\_agent: ""
-
+assigned_agent: ""
 priority: medium
+depends_on: []
+created_by: orchestrator
+claimed_by:
+claimed_at:
+---
 
-depends\_on: \[]
+# User Request
 
-created\_by: orchestrator
+# Objective
 
-claimed\_by:
+# Acceptance Criteria
 
-claimed\_at:
+- [ ]
 
-\---
+# Context
 
+# Agent Instructions
 
+# Deliverables
 
-\# User Request
+# Artifacts
 
+## Created
 
+## Used
 
-\# Objective
+# Validation
 
+# Completion Notes
 
+## Summary of Work Completed
 
-\# Acceptance Criteria
+## Files Changed
 
+## Artifacts Created or Used
 
+## Assumptions Made
 
-\- \[ ]
+## Validation Performed
 
+## Known Limitations
 
+## Follow-up Recommendations
 
-\# Context
-
-
-
-\# Agent Instructions
-
-
-
-\# Deliverables
-
-
-
-\# Artifacts
-
-
-
-\## Created
-
-
-
-\## Used
-
-
-
-\# Validation
-
-
-
-\# Completion Notes
-
-
-
-\## Summary of Work Completed
-
-
-
-\## Files Changed
-
-
-
-\## Artifacts Created or Used
-
-
-
-\## Assumptions Made
-
-
-
-\## Validation Performed
-
-
-
-\## Known Limitations
-
-
-
-\## Follow-up Recommendations
-
-
-
-\## Reviewer Approval
-
+## Reviewer Approval
