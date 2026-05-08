@@ -1,7 +1,7 @@
 ---
 id: TASK-0004
 title: "Review homepage for content, structure, and responsiveness"
-status: inbox
+status: ready
 assigned_agent: reviewer
 priority: medium
 depends_on: [TASK-0003]
