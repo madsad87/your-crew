@@ -72,6 +72,12 @@ Use workflow-runner mode when you want Codex to continue the board until it reac
 Run the lightweight AgentBoard validator before committing protocol or task-board changes:
 
 ```bash
+npm run validate
+```
+
+You can also run the script directly:
+
+```bash
 node scripts/validate-agentboard.js
 ```
 

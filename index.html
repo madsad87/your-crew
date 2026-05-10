@@ -13,7 +13,19 @@
       <a class="brand" href="/" aria-label="Your Crew home">Your Crew</a>
       <div class="nav-links">
         <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a>
         <a href="#cta">Start</a>
+        <fieldset class="theme-toggle" aria-label="Theme">
+          <legend>Theme</legend>
+          <label>
+            <input type="radio" name="theme" value="light" checked>
+            <span>Light</span>
+          </label>
+          <label>
+            <input id="theme-dos" type="radio" name="theme" value="dos">
+            <span>DOS</span>
+          </label>
+        </fieldset>
       </div>
     </nav>
   </header>
@@ -50,6 +62,45 @@
           <p>Let orchestrators, builders, reviewers, and content agents focus on narrow roles without overlapping work.</p>
         </article>
       </div>
+    </section>
+
+    <section class="workflow" id="workflow" aria-labelledby="workflow-title">
+      <div class="section-kicker">
+        <p class="eyebrow">How Your Crew works</p>
+        <h2 id="workflow-title">From request to reviewed work, every step stays visible.</h2>
+      </div>
+
+      <ol class="workflow-steps" aria-label="Your Crew workflow steps">
+        <li class="workflow-step">
+          <span class="step-number">01</span>
+          <h3>User gives a request</h3>
+          <p>A goal starts as plain language, not a hidden automation or brittle prompt chain.</p>
+        </li>
+
+        <li class="workflow-step">
+          <span class="step-number">02</span>
+          <h3>Orchestrator creates tasks</h3>
+          <p>The request becomes small Markdown task files with owners, dependencies, and acceptance criteria.</p>
+        </li>
+
+        <li class="workflow-step">
+          <span class="step-number">03</span>
+          <h3>Specialist agents complete work</h3>
+          <p>Builders, content creators, and other agents claim focused tasks and move completed work to review.</p>
+        </li>
+
+        <li class="workflow-step">
+          <span class="step-number">04</span>
+          <h3>Reviewer approves</h3>
+          <p>Review gates keep quality explicit before work is marked done or dependencies unlock.</p>
+        </li>
+
+        <li class="workflow-step">
+          <span class="step-number">05</span>
+          <h3>Workflow-runner continues the board</h3>
+          <p>The runner advances review and ready tasks in sequence until the board is clear or blocked.</p>
+        </li>
+      </ol>
     </section>
 
     <section class="cta" id="cta" aria-labelledby="cta-title">
