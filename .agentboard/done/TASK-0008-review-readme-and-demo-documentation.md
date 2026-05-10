@@ -6,7 +6,9 @@ assigned_agent: reviewer
 priority: medium
 depends_on: [TASK-0006]
 created_by: orchestrator
-claimed_by: workflow-runnerclaimed_at: 2026-05-08---
+claimed_by: workflow-runner
+claimed_at: 2026-05-08
+---
 
 # User Request
 

@@ -67,6 +67,16 @@ The runner:
 
 Use workflow-runner mode when you want Codex to continue the board until it reaches a natural stopping point.
 
+## Validating The Board
+
+Run the lightweight AgentBoard validator before committing protocol or task-board changes:
+
+```bash
+node scripts/validate-agentboard.js
+```
+
+The validator checks task frontmatter, status/folder alignment, dependency references, ready-task dependency satisfaction, reviewer approval on done tasks, and required task sections. It prints a pass/fail summary and lists specific files and issues when validation fails.
+
 ## First Completed Workflow
 
 The first completed Your Crew workflow built the static homepage and then improved the protocol based on what the workflow revealed.
