@@ -35,8 +35,22 @@ Current agents are listed in `.agentboard/agent-registry.md` and described in `.
 - `builder`: implements assigned tasks and validates the work before review
 - `reviewer`: validates completed tasks, approves work into done, and unlocks dependencies
 - `workflow-runner`: advances the board across roles by processing review tasks before ready tasks
+- `repo-ops`: handles simple repository hygiene and Git operations outside the task workflow
 
 `AGENTS.md` is the global protocol source of truth. Individual role files under `.agentboard/agents/` describe role-specific behavior.
+
+## Conversational Entry Point
+
+The orchestrator is the default conversational entry point during normal use. Users do not need to manually say "act as builder", "act as reviewer", or "act as workflow-runner".
+
+The orchestrator chooses the right mode for each request:
+
+- Planning Mode creates new tasks for project work.
+- Execution Mode delegates actionable board work to the workflow-runner.
+- Status Mode summarizes board state without executing work.
+- Clarification Mode asks for missing information or creates a blocked clarification task.
+
+Workflow execution remains sequential by default. Parallel execution, cron jobs, and background automation are not part of the current protocol.
 
 ## Running The Workflow Manually
 
@@ -66,6 +80,23 @@ The runner:
 - stops when no actionable tasks remain, a blocker requires user input, or the loop safety limit is reached
 
 Use workflow-runner mode when you want Codex to continue the board until it reaches a natural stopping point.
+
+## Repo Ops Mode
+
+Repo Ops Mode handles simple repository operations without creating AgentBoard tasks.
+
+Use Repo Ops for requests such as:
+
+- checking git status
+- viewing recent commits or logs
+- checking or creating branches
+- committing completed work
+- pushing the current branch
+- preparing pull requests
+
+Repo Ops is not for feature work, documentation changes, protocol changes, or implementation work. Those should go through the normal AgentBoard task workflow.
+
+Destructive Git actions such as force push, reset, clean, rebase, or discarding changes require explicit user instruction. When AgentBoard files changed, run the board validator before committing when practical. After commit or push operations, report the branch, latest commit hash, push status, and working tree state.
 
 ## Validating The Board
 
@@ -97,22 +128,30 @@ The chain covered:
 
 The reusable demo write-up is stored at `.agentboard/artifacts/TASK-0007-demo-homepage-workflow.md`.
 
+Later homepage updates added:
+
+- a "How Your Crew Works" visual workflow section
+- a CSS-only Light/DOS radio theme toggle
+- a DOS-inspired green-and-black dark mode treatment
+
+The natural-language routing behind those demos is documented in `docs/natural-language-demo-workflows.md`.
+
 ## Current Status
 
-V1 is in place:
+Current project state:
 
 - Markdown task board structure
 - Global protocol in `AGENTS.md`
 - Agent registry
-- Role files for orchestrator, content creator, builder, reviewer, and workflow runner
+- Role files for orchestrator, content creator, builder, reviewer, workflow-runner, and repo-ops
 - Task template with claiming, artifacts, validation, completion notes, and reviewer approval fields
 - Completed homepage workflow demonstrating the board
-
-V1.1 is in progress:
-
-- README and demo documentation tasks are being added
-- Workflow-runner behavior is documented as a role file
-- Future improvements may include a board validator and executable workflow-runner tooling
+- Orchestrator default conversational entry point
+- Workflow-runner delegation and compact summaries
+- Lightweight AgentBoard validator
+- `npm run validate` script
+- Repo Ops Mode for simple Git operations outside task workflow
+- Homepage workflow explainer section and DOS-inspired dark mode toggle
 
 ## Key Files
 
@@ -121,4 +160,7 @@ V1.1 is in progress:
 - `.agentboard/agent-registry.md`: active agent registry
 - `.agentboard/agents/`: role-specific agent instructions
 - `.agentboard/artifacts/`: reusable task deliverables
+- `docs/natural-language-demo-workflows.md`: demo notes for conversational orchestration and workflow-runner routing
+- `scripts/validate-agentboard.js`: read-only AgentBoard validator
+- `package.json`: project metadata and `npm run validate` script
 - `index.html` and `styles.css`: static homepage produced by the first workflow
