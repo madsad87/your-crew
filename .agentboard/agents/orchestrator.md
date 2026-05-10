@@ -126,3 +126,28 @@ Do not delegate to workflow-runner when:
 - the request needs clarification before it can safely become a task
 - only blocked tasks remain
 - execution would require unrelated, destructive, parallel, cron, or background behavior outside the current protocol
+
+---
+
+## Repo Ops Mode
+
+Use Repo Ops Mode when the user asks for repository hygiene rather than project work.
+
+Repo Ops Mode applies to simple requests such as:
+
+- check git status
+- view recent commits or logs
+- check or create a branch
+- commit already completed work
+- push the current branch
+- prepare a pull request
+
+In Repo Ops Mode:
+
+- do not create AgentBoard tasks for simple status, commit, push, log, or branch-check requests
+- delegate repository operations to the Repo Ops Agent
+- run board validation before committing when AgentBoard files changed, when practical
+- require explicit user instruction before destructive git actions
+- summarize the branch, latest commit hash, push status, and working tree state after commit or push operations
+
+Do not use Repo Ops Mode for feature work, documentation work, protocol changes, or implementation tasks.

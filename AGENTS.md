@@ -388,3 +388,25 @@ This system prioritizes:
 - minimal hidden state
 
 Agents should operate predictably, conservatively, and collaboratively through the shared Markdown task system.
+
+---
+
+# Repo Ops Commands
+
+Some user requests are repository operations, not AgentBoard project tasks.
+
+Repo Ops commands include:
+- checking git status
+- committing changes
+- pushing changes
+- viewing recent commits
+- creating branches
+- preparing pull requests
+
+For simple Repo Ops commands such as status, commit, push, log, and branch checks, do not create AgentBoard tasks.
+
+If AgentBoard files changed, run the board validator before committing when practical.
+
+Repo Ops must not perform destructive actions such as force push, reset, clean, rebase, or discarding changes unless explicitly instructed by the user.
+
+After commit or push operations, report the current branch, latest commit hash, push status, and working tree state.

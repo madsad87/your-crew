@@ -7,6 +7,6 @@
 |reviewer|QA/review|active|
 |content-creator|documentation/content|active|
 |workflow-runner|Executes the board loop across roles until blocked or complete|active|
-
+|repo-ops|repository hygiene and Git operations outside task workflow|active|
 
 
