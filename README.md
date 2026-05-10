@@ -114,6 +114,47 @@ node scripts/validate-agentboard.js
 
 The validator checks task frontmatter, status/folder alignment, dependency references, ready-task dependency satisfaction, reviewer approval on done tasks, and required task sections. It prints a pass/fail summary and lists specific files and issues when validation fails.
 
+## Initializing Another Repository
+
+Use the first-pass initializer to scaffold Your Crew into another repository:
+
+```bash
+node scripts/init-agentboard.js --target ../target-repo --dry-run
+```
+
+Remove `--dry-run` to write files:
+
+```bash
+node scripts/init-agentboard.js --target ../target-repo
+```
+
+The initializer creates the base `.agentboard/` folders, copies the global protocol, base agent files, task template, agent registry, and validator script, then generates a starter `.agentboard/project-profile.md`.
+
+It is safe by default: existing files are skipped. Use `--force` only when you intentionally want to overwrite existing protocol files in the target repository.
+
+Project profile values can be provided with flags:
+
+```bash
+node scripts/init-agentboard.js --target ../target-repo \
+  --project-name "Customer Portal" \
+  --project-type "Web app" \
+  --tech-stack "TypeScript, React, Node.js" \
+  --goal "Coordinate feature work through AgentBoard" \
+  --avoid "Secrets, production data, generated build output" \
+  --optional-skills "frontend design, accessibility, CI review"
+```
+
+The generated profile also records the initial setup questionnaire:
+
+- What are we building?
+- What type of project is this?
+- What technology stack is used?
+- What is the main project goal?
+- What should agents avoid touching?
+- Which optional specialists or skills might be useful later?
+
+This first pass does not implement skills, MCP integrations, parallel agents, or background automation. The project profile includes `Enabled Agents` and `Enabled Skills` sections so those can be added deliberately later.
+
 ## First Completed Workflow
 
 The first completed Your Crew workflow built the static homepage and then improved the protocol based on what the workflow revealed.
@@ -149,6 +190,7 @@ Current project state:
 - Orchestrator default conversational entry point
 - Workflow-runner delegation and compact summaries
 - Lightweight AgentBoard validator
+- First-pass initializer for scaffolding Your Crew into another repository
 - `npm run validate` script
 - Repo Ops Mode for simple Git operations outside task workflow
 - Homepage workflow explainer section and DOS-inspired dark mode toggle
@@ -161,6 +203,7 @@ Current project state:
 - `.agentboard/agents/`: role-specific agent instructions
 - `.agentboard/artifacts/`: reusable task deliverables
 - `docs/natural-language-demo-workflows.md`: demo notes for conversational orchestration and workflow-runner routing
+- `scripts/init-agentboard.js`: first-pass initializer for scaffolding Your Crew into another repository
 - `scripts/validate-agentboard.js`: read-only AgentBoard validator
 - `package.json`: project metadata and `npm run validate` script
 - `index.html` and `styles.css`: static homepage produced by the first workflow
