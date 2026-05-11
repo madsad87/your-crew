@@ -272,6 +272,8 @@ When a task explicitly lists skills in frontmatter, the acting agent must:
 
 Tasks without `skills` are not required to load skills. Skills remain selective task guidance and do not become mandatory for every task.
 
+For review and done tasks with enforced skill reporting, the board validator checks that each listed skill appears in Completion Notes as `Skill used: {skill}`. Historical skill tasks created before this reporting rule are grandfathered by the validator.
+
 Task skill metadata may use:
 
 ```yaml
@@ -308,6 +310,14 @@ When an agent claims a task:
 - If `claimed_at` exists, set it to the current date.
 
 Agents must not claim tasks assigned to another agent unless the user explicitly instructs them to temporarily act as that agent.
+
+Agents should use the task move helper when practical:
+
+```bash
+npm run board:move -- TASK-0000 in-progress --agent builder
+```
+
+The helper moves the Markdown file and updates frontmatter `status` in the same operation. When claiming a task, pass `--agent` so `claimed_by` and `claimed_at` are updated with the move.
 
 ---
 
@@ -432,6 +442,30 @@ Validation may include:
 - Browser or visual checks.
 - Link, schema, or formatting checks.
 - Manual comparison against approved artifacts.
+
+Before implementing a task, agents should run a quick preflight when practical:
+
+```bash
+npm run board:preflight -- TASK-0000
+```
+
+The preflight summarizes assigned agent, skills, expected files, and checked/unchecked acceptance criteria so agents can detect work that may already be satisfied before making changes.
+
+For focused dashboard metadata checks, prefer:
+
+```bash
+npm run smoke:metadata -- TASK-0000
+```
+
+This avoids dumping the full `/api/board` payload when validating `skills`, `expected_files`, and `parallel_safe` parsing.
+
+For browser-tooling fallback validation, prefer:
+
+```bash
+npm run smoke:dashboard
+```
+
+This verifies the local dashboard shell, board API, and validation API respond when full browser automation is unavailable.
 
 If expected tooling is unavailable, agents must:
 

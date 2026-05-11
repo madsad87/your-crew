@@ -1,7 +1,11 @@
 const { spawnSync } = require("child_process");
 const path = require("path");
 
-const tests = ["tests/lib/agentboard-parser.test.js", "tests/lib/agentboard-api.test.js"];
+const tests = [
+  "tests/lib/agentboard-parser.test.js",
+  "tests/lib/agentboard-api.test.js",
+  "tests/lib/agentboard-workflow-tools.test.js",
+];
 
 for (const test of tests) {
   const result = spawnSync(process.execPath, [path.join(process.cwd(), test)], {

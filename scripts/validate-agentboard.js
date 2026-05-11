@@ -8,6 +8,7 @@ const boardDir = path.join(root, ".agentboard");
 const skillsDir = path.join(boardDir, "skills");
 const skillRegistryPath = path.join(boardDir, "skill-registry.md");
 const taskFolders = ["inbox", "ready", "in-progress", "review", "done", "blocked"];
+const skillReportingEnforcedFromTaskNumber = 22;
 const requiredFrontmatter = [
   "id",
   "title",
@@ -160,6 +161,14 @@ function validate() {
             addIssue(issues, task.filePath, `skill does not exist: ${skill}`);
           }
         }
+
+        if (requiresSkillUsageReporting(task.folder, parsed.data)) {
+          for (const skill of parsed.data.skills) {
+            if (!hasSkillUsageNote(content, skill)) {
+              addIssue(issues, task.filePath, `missing Completion Notes skill usage: Skill used: ${skill}`);
+            }
+          }
+        }
       }
     }
 
@@ -226,6 +235,32 @@ function isBooleanMetadata(value) {
 
 function hasReviewerApproval(content) {
   return /reviewer approval/i.test(content) && /approved/i.test(content);
+}
+
+function requiresSkillUsageReporting(folder, frontmatter) {
+  if (folder !== "review" && folder !== "done") {
+    return false;
+  }
+
+  if (!Array.isArray(frontmatter.skills) || frontmatter.skills.length === 0) {
+    return false;
+  }
+
+  return getTaskNumber(frontmatter.id) >= skillReportingEnforcedFromTaskNumber;
+}
+
+function getTaskNumber(taskId) {
+  const match = String(taskId || "").match(/^TASK-(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+function hasSkillUsageNote(content, skill) {
+  const escapedSkill = escapeRegExp(skill);
+  return new RegExp(`Skill used:\\s*${escapedSkill}`, "i").test(content);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function printResult(result) {

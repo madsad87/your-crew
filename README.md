@@ -26,6 +26,22 @@ npm run build
 npm run validate:board
 ```
 
+## Workflow Helpers
+
+AgentBoard includes small helper scripts for safer local workflow operations:
+
+```bash
+npm run board:preflight -- TASK-0025
+npm run board:move -- TASK-0025 in-progress --agent builder
+npm run smoke:metadata -- TASK-0025
+npm run smoke:dashboard
+```
+
+- `board:preflight` summarizes task status, assigned agent, skills, expected files, and acceptance progress before implementation.
+- `board:move` moves a task file and updates frontmatter status together.
+- `smoke:metadata` prints only key parsed metadata for one task.
+- `smoke:dashboard` checks the local app shell, board API, and validation API when full browser automation is unavailable.
+
 ## Current Scope
 
 The current MVP is read-only. It can:
@@ -77,6 +93,8 @@ npm run validate:board
 ```
 
 The dashboard also runs validation through `/api/validate`. Validation is read-only and uses the existing `scripts/validate-agentboard.js` rules for frontmatter, required sections, status/folder alignment, dependencies, and reviewer approval.
+
+For tasks with enforced skill reporting, validation also checks that review/done task Completion Notes include `Skill used: {skill}` for each listed skill.
 
 ## Read-Only Limits
 
