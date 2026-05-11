@@ -14,6 +14,9 @@ export type AgentBoardTask = {
   assignedAgent: string;
   priority: string;
   dependsOn: string[];
+  skills: string[];
+  expectedFiles: string[];
+  parallelSafe: boolean | null;
   createdBy: string;
   filePath: string;
   relativePath: string;
@@ -22,9 +25,18 @@ export type AgentBoardTask = {
   sections: Record<string, MarkdownSection>;
 };
 
+export type SkillRegistryEntry = {
+  name: string;
+  purpose: string;
+  status: string;
+  appliesTo: string;
+  relativePath: string;
+};
+
 export type AgentBoard = {
   tasks: AgentBoardTask[];
   columns: Record<TaskStatus, AgentBoardTask[]>;
+  skills: SkillRegistryEntry[];
 };
 
 export type BoardResponse =

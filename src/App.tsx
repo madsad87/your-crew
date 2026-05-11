@@ -205,6 +205,7 @@ export function App() {
           validation={validation}
         />
         {error ? <ErrorState message={error} /> : null}
+        <SkillLibraryPanel isLoading={isLoading} skills={board?.skills ?? []} />
         <ActiveWorkPanel
           doneIds={doneIds}
           isLoading={isLoading}
@@ -348,11 +349,75 @@ function ActiveWorkPanel({
                   tone={getDependencyLabel(task, doneIds).includes("blocked") ? "warning" : "neutral"}
                 />
                 {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+                <SkillChips skills={task.skills ?? []} />
               </span>
             </span>
           </button>
         ))}
       </div>
+    </section>
+  );
+}
+
+function SkillLibraryPanel({
+  isLoading,
+  skills,
+}: {
+  isLoading: boolean;
+  skills: AgentBoard["skills"];
+}) {
+  if (isLoading) {
+    return (
+      <section className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-900">
+        <h2 className="text-sm font-semibold text-stone-950 dark:text-stone-100">Skill Library</h2>
+        <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">Loading enabled skills.</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-900">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-950 dark:text-stone-100">Skill Library</h2>
+          <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">
+            Skills enhance agents with reusable capabilities; agents remain the stable roles.
+          </p>
+        </div>
+        <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">
+          {skills.length} enabled skill{skills.length === 1 ? "" : "s"}
+        </p>
+      </div>
+
+      {skills.length > 0 ? (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+          {skills.map((skill) => (
+            <div
+              className="min-w-0 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-800 dark:bg-stone-950"
+              key={skill.name}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800">
+                  {skill.name}
+                </span>
+                <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                  {skill.status}
+                </span>
+              </div>
+              <p className="mt-2 line-clamp-2 break-words text-xs leading-5 text-stone-600 dark:text-stone-300">
+                {skill.purpose}
+              </p>
+              <p className="mt-2 break-words text-xs font-medium text-stone-500 dark:text-stone-400">
+                {skill.appliesTo}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-3 rounded-lg border border-dashed border-stone-200 bg-stone-50 px-4 py-3 text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-400">
+          No enabled skills found.
+        </div>
+      )}
     </section>
   );
 }
@@ -388,8 +453,9 @@ function ValidationPanel({
 }) {
   const hasData = validation && "data" in validation;
   const isPassing = Boolean(hasData && validation.ok);
-  const issues = hasData ? validation.data.issues : [];
-  const checkedTaskCount = hasData ? validation.data.checkedTaskCount : 0;
+  const validationData = hasData ? validation.data : null;
+  const issues = Array.isArray(validationData?.issues) ? validationData.issues : [];
+  const checkedTaskCount = validationData?.checkedTaskCount ?? 0;
   const statusClass = isPassing
     ? "border-green-200 bg-green-50 text-green-800"
     : "border-amber-200 bg-amber-50 text-amber-900";
@@ -482,6 +548,7 @@ function TaskCard({
             <Pill label={task.assignedAgent || "unassigned"} />
             <Pill label={dependencyLabel} tone={dependencyLabel.includes("blocked") ? "warning" : "neutral"} />
             {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+            <SkillChips skills={task.skills ?? []} />
           </div>
           <span className="shrink-0 text-xs font-semibold text-stone-400 transition-colors group-hover:text-emerald-700 group-focus-visible:text-emerald-700 dark:text-stone-500 dark:group-hover:text-emerald-300 dark:group-focus-visible:text-emerald-300">
             Details -&gt;
@@ -490,6 +557,35 @@ function TaskCard({
 
       </div>
     </button>
+  );
+}
+
+function SkillChips({ skills }: { skills?: string[] }) {
+  const skillList = skills ?? [];
+
+  if (skillList.length === 0) {
+    return null;
+  }
+
+  const visibleSkills = skillList.slice(0, 3);
+  const hiddenCount = Math.max(skillList.length - visibleSkills.length, 0);
+
+  return (
+    <>
+      {visibleSkills.map((skill) => (
+        <span
+          className="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-800 ring-1 ring-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800"
+          key={skill}
+        >
+          {skill}
+        </span>
+      ))}
+      {hiddenCount > 0 ? (
+        <span className="rounded-full bg-stone-50 px-2 py-1 font-medium text-stone-600 ring-1 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700">
+          +{hiddenCount} skill{hiddenCount === 1 ? "" : "s"}
+        </span>
+      ) : null}
+    </>
   );
 }
 
@@ -596,6 +692,16 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
               label="Dependencies"
               value={task.dependsOn.length > 0 ? task.dependsOn.join(", ") : "none"}
             />
+            {(task.skills ?? []).length > 0 ? <MetadataItem label="Skills" value={(task.skills ?? []).join(", ")} /> : null}
+            {(task.expectedFiles ?? []).length > 0 ? (
+              <MetadataItem label="Expected Files" value={(task.expectedFiles ?? []).join(", ")} />
+            ) : null}
+            {task.parallelSafe != null ? (
+              <MetadataItem
+                label="Parallel Safe"
+                value={`${task.parallelSafe ? "yes" : "no"} (metadata only)`}
+              />
+            ) : null}
             <MetadataItem label="Status Match" value={task.statusMatchesFolder ? "yes" : "no"} />
           </section>
 

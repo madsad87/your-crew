@@ -8,6 +8,9 @@ depends_on: []
 created_by: orchestrator
 claimed_by:
 claimed_at:
+skills: []
+expected_files: []
+parallel_safe: false
 ---
 
 # User Request

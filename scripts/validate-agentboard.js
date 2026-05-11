@@ -5,6 +5,8 @@ const path = require("path");
 
 const root = process.cwd();
 const boardDir = path.join(root, ".agentboard");
+const skillsDir = path.join(boardDir, "skills");
+const skillRegistryPath = path.join(boardDir, "skill-registry.md");
 const taskFolders = ["inbox", "ready", "in-progress", "review", "done", "blocked"];
 const requiredFrontmatter = [
   "id",
@@ -101,6 +103,7 @@ function validate() {
   const tasks = listTaskFiles();
   const byId = new Map();
   const doneIds = new Set();
+  const skillRefs = readSkillReferences();
 
   for (const task of tasks) {
     const content = fs.readFileSync(task.filePath, "utf8");
@@ -147,6 +150,26 @@ function validate() {
     if ("depends_on" in parsed.data && !Array.isArray(parsed.data.depends_on)) {
       addIssue(issues, task.filePath, "depends_on must use inline list syntax, for example: [] or [TASK-0001]");
     }
+
+    if ("skills" in parsed.data) {
+      if (!Array.isArray(parsed.data.skills)) {
+        addIssue(issues, task.filePath, "skills must use inline list syntax, for example: [] or [react-dashboard]");
+      } else {
+        for (const skill of parsed.data.skills) {
+          if (!skillRefs.has(skill)) {
+            addIssue(issues, task.filePath, `skill does not exist: ${skill}`);
+          }
+        }
+      }
+    }
+
+    if ("expected_files" in parsed.data && !Array.isArray(parsed.data.expected_files)) {
+      addIssue(issues, task.filePath, "expected_files must use inline list syntax, for example: [] or [src/App.tsx]");
+    }
+
+    if ("parallel_safe" in parsed.data && !isBooleanMetadata(parsed.data.parallel_safe)) {
+      addIssue(issues, task.filePath, "parallel_safe must be true or false metadata");
+    }
   }
 
   for (const task of tasks) {
@@ -168,6 +191,37 @@ function validate() {
   }
 
   return { tasks, issues };
+}
+
+function readSkillReferences() {
+  const refs = new Set();
+
+  if (fs.existsSync(skillsDir)) {
+    for (const entry of fs.readdirSync(skillsDir, { withFileTypes: true })) {
+      if (entry.isFile() && entry.name.endsWith(".md")) {
+        refs.add(entry.name.replace(/\.md$/, ""));
+      }
+    }
+  }
+
+  if (fs.existsSync(skillRegistryPath)) {
+    const registry = fs.readFileSync(skillRegistryPath, "utf8");
+
+    for (const line of registry.split(/\r?\n/)) {
+      const match = line.match(/^\|([^|]+)\|/);
+      if (!match) continue;
+
+      const skill = match[1].trim();
+      if (!skill || skill === "Skill" || /^-+$/.test(skill)) continue;
+      refs.add(skill);
+    }
+  }
+
+  return refs;
+}
+
+function isBooleanMetadata(value) {
+  return value === true || value === false || value === "true" || value === "false";
 }
 
 function hasReviewerApproval(content) {

@@ -31,11 +31,18 @@ npm run validate:board
 The current MVP is read-only. It can:
 
 - Render `.agentboard` task files in Kanban workflow columns.
-- Show task cards with ID, title, priority, assigned agent, dependency state, and source path.
+- Show task cards with ID, title, priority, assigned agent, dependency state, detail affordance, and skill chips when present.
 - Open a task detail drawer with frontmatter and key Markdown sections.
+- Surface enabled Skill Library entries from `.agentboard/skill-registry.md`.
 - Run AgentBoard validation from the dashboard and show pass/fail status.
 
 It does not edit, move, claim, approve, or create task files.
+
+## Skill Library
+
+This dashboard branch includes a first-pass Skill Library system. Agents remain stable workflow roles; skills are reusable capabilities that agents can load when task frontmatter requests domain-specific guidance.
+
+See [docs/skills-library.md](docs/skills-library.md) for the registry structure, task metadata fields, dashboard behavior, and current MCP/tooling boundary.
 
 ## How Board Data Is Read
 
@@ -57,6 +64,7 @@ The browser does not read the filesystem directly. During local development, Vit
 The Vite development server exposes read-only AgentBoard endpoints for the dashboard:
 
 - `GET /api/board` returns `{ ok, data }`, where `data.tasks` is the full task list and `data.columns` is grouped by AgentBoard status.
+- `GET /api/board` also includes `data.skills` from `.agentboard/skill-registry.md` when available.
 - `GET /api/tasks/:id` returns `{ ok, data }` for a single task or `{ ok: false, status: 404, error }` when the task is missing.
 - `GET /api/validate` or `POST /api/validate` runs `scripts/validate-agentboard.js` and returns `{ ok, data: { exitCode, stdout, stderr, checkedTaskCount, issues } }`.
 

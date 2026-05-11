@@ -49,6 +49,15 @@ To be able to build and create further functionality for the "your-crew" tools
 - Use `ux-ui` before builder implementation when a task affects usability, visual hierarchy, interaction design, responsive behavior, accessibility expectations, or reusable interface patterns.
 - `ux-ui` is advisory and should produce design guidance, acceptance considerations, and review notes; builder remains responsible for implementation.
 - Do not treat this dashboard-branch specialist as a change to the base locked crew on `main`.
+- This dashboard branch is the proving ground for optional specialists and reusable skills before any base crew changes are considered.
+- Enabled skill library entries are listed in `.agentboard/skill-registry.md`.
+- Dashboard-relevant enabled skills for this branch:
+  - `react-dashboard`
+  - `accessibility-review`
+  - `seo-content`
+  - `dashboard-ux`
+- Agents remain stable roles; skills are optional capabilities loaded when project guidance or task frontmatter makes them relevant.
+- Skill metadata is advisory and must not enable parallel execution, MCP integration, background automation, or task mutation behavior by itself.
 
 ## Future Extensions
 

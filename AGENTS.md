@@ -226,6 +226,66 @@ Detailed behavior lives in `.agentboard/agents/workflow-runner.md`.
 
 ---
 
+# Agents And Skills
+
+Agents are stable roles. They define ownership and responsibility in the workflow.
+
+Skills are reusable capabilities. They provide optional domain-specific guidance that an agent can load when a task needs that capability.
+
+Examples:
+
+- `builder` agent + `react-dashboard` skill
+- `reviewer` agent + `accessibility-review` skill
+- `content-creator` agent + `seo-content` skill
+- `ux-ui` agent + `dashboard-ux` skill
+
+Skills must not replace agents. A task is still assigned to one `assigned_agent`, and that agent remains responsible for the work.
+
+## Skill Library
+
+Skill files live in:
+
+    .agentboard/skills/
+
+The skill registry lives at:
+
+    .agentboard/skill-registry.md
+
+The registry lists known skills, their purpose, status, and likely agent fit. Individual skill files contain reusable guidance for agents.
+
+## Skill Loading Rules
+
+Agents should load skills when relevant:
+
+- Load project enabled skills from `.agentboard/project-profile.md` and `.agentboard/skill-registry.md` when they match the task.
+- Load task-specific skills listed in frontmatter `skills`.
+- If a task lists a skill that does not exist in `.agentboard/skills/` or `.agentboard/skill-registry.md`, document a blocker or warning before continuing.
+- Treat skills as guidance only unless a future task explicitly adds tool or MCP behavior.
+
+Task skill metadata may use:
+
+```yaml
+skills: [react-dashboard]
+expected_files: [src/App.tsx]
+parallel_safe: false
+```
+
+`expected_files` is planning metadata. `parallel_safe` is future planning metadata only.
+
+## Skill System Boundaries
+
+The first-pass Skill Library does not:
+
+- change the base agents
+- enable parallel execution
+- add MCP integrations
+- add background automation
+- add task mutation controls
+
+Workflow execution remains sequential by default.
+
+---
+
 # Claiming Tasks
 
 When an agent claims a task:
@@ -410,5 +470,4 @@ This system prioritizes:
 - minimal hidden state
 
 Agents should operate predictably, conservatively, and collaboratively through the shared Markdown task system.
-
 

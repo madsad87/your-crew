@@ -20,6 +20,9 @@ const TASK_STATUSES = ["inbox", "ready", "in-progress", "review", "done", "block
  * @property {string} assignedAgent
  * @property {string} priority
  * @property {string[]} dependsOn
+ * @property {string[]} skills
+ * @property {string[]} expectedFiles
+ * @property {boolean | null} parallelSafe
  * @property {string} createdBy
  * @property {string} filePath
  * @property {string} relativePath
@@ -30,6 +33,14 @@ const TASK_STATUSES = ["inbox", "ready", "in-progress", "review", "done", "block
  * @typedef {Object} AgentBoard
  * @property {AgentBoardTask[]} tasks
  * @property {Record<TaskStatus, AgentBoardTask[]>} columns
+ * @property {SkillRegistryEntry[]} skills
+ *
+ * @typedef {Object} SkillRegistryEntry
+ * @property {string} name
+ * @property {string} purpose
+ * @property {string} status
+ * @property {string} appliesTo
+ * @property {string} relativePath
  */
 
 function readBoard(root = process.cwd()) {
@@ -62,7 +73,7 @@ function readBoard(root = process.cwd()) {
     columns[status].sort(compareTasks);
   }
 
-  return { tasks, columns };
+  return { tasks, columns, skills: readSkillRegistry(root) };
 }
 
 function parseTaskFile(filePath, folderStatus, root = process.cwd()) {
@@ -90,6 +101,9 @@ function parseTaskContent(content, options) {
     assignedAgent: stringify(frontmatter.assigned_agent),
     priority: stringify(frontmatter.priority),
     dependsOn: normalizeDependsOn(frontmatter.depends_on),
+    skills: normalizeList(frontmatter.skills),
+    expectedFiles: normalizeList(frontmatter.expected_files),
+    parallelSafe: normalizeBooleanMetadata(frontmatter.parallel_safe),
     createdBy: stringify(frontmatter.created_by),
     filePath: options.filePath,
     relativePath: toRelativePath(options.root, options.filePath),
@@ -134,6 +148,10 @@ function flushSection(sections, title, lines) {
 }
 
 function normalizeDependsOn(value) {
+  return normalizeList(value);
+}
+
+function normalizeList(value) {
   if (Array.isArray(value)) {
     return value.map(stringify).filter(Boolean);
   }
@@ -143,6 +161,63 @@ function normalizeDependsOn(value) {
   }
 
   return [];
+}
+
+function normalizeBooleanMetadata(value) {
+  if (value === true || value === false) {
+    return value;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return null;
+}
+
+function readSkillRegistry(root = process.cwd()) {
+  const registryPath = path.join(root, ".agentboard", "skill-registry.md");
+  const skillsDir = path.join(root, ".agentboard", "skills");
+
+  if (!fs.existsSync(registryPath)) {
+    return [];
+  }
+
+  const registry = fs.readFileSync(registryPath, "utf8");
+
+  return registry
+    .split(/\r?\n/)
+    .map((line) => parseSkillRegistryRow(line, root, skillsDir))
+    .filter(Boolean);
+}
+
+function parseSkillRegistryRow(line, root, skillsDir) {
+  if (!line.startsWith("|")) {
+    return null;
+  }
+
+  const cells = line
+    .split("|")
+    .slice(1, -1)
+    .map((cell) => cell.trim());
+
+  if (cells.length < 4 || cells[0] === "Skill" || /^-+$/.test(cells[0])) {
+    return null;
+  }
+
+  const skillPath = path.join(skillsDir, `${cells[0]}.md`);
+
+  return {
+    name: cells[0],
+    purpose: cells[1],
+    status: cells[2],
+    appliesTo: cells[3],
+    relativePath: fs.existsSync(skillPath) ? toRelativePath(root, skillPath) : "",
+  };
 }
 
 function createEmptyColumns() {
@@ -171,6 +246,7 @@ function toRelativePath(root, filePath) {
 module.exports = {
   TASK_STATUSES,
   parseMarkdownSections,
+  readSkillRegistry,
   parseTaskContent,
   parseTaskFile,
   readBoard,
