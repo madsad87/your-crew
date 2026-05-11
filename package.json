@@ -2,6 +2,9 @@
   "name": "your-crew",
   "version": "0.1.0",
   "private": true,
+  "bin": {
+    "your-crew": "bin/your-crew.js"
+  },
   "scripts": {
     "validate": "node scripts/validate-agentboard.js"
   }

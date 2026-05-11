@@ -116,16 +116,30 @@ The validator checks task frontmatter, status/folder alignment, dependency refer
 
 ## Initializing Another Repository
 
-Use the first-pass initializer to scaffold Your Crew into another repository:
+Use the first-pass initializer to scaffold Your Crew into another repository.
+
+From this repository, you can run the script directly:
 
 ```bash
 node scripts/init-agentboard.js --target ../target-repo --dry-run
 ```
 
+For CLI-style local usage, link the package first:
+
+```bash
+npm link
+```
+
+Then run:
+
+```bash
+your-crew init --target ../target-repo --dry-run
+```
+
 Remove `--dry-run` to write files:
 
 ```bash
-node scripts/init-agentboard.js --target ../target-repo
+your-crew init --target ../target-repo
 ```
 
 The initializer creates the base `.agentboard/` folders, copies the global protocol, base agent files, task template, agent registry, and validator script, then generates a starter `.agentboard/project-profile.md`.
@@ -135,13 +149,19 @@ It is safe by default: existing files are skipped. Use `--force` only when you i
 Project profile values can be provided with flags:
 
 ```bash
-node scripts/init-agentboard.js --target ../target-repo \
+your-crew init --target ../target-repo \
   --project-name "Customer Portal" \
   --project-type "Web app" \
   --tech-stack "TypeScript, React, Node.js" \
   --goal "Coordinate feature work through AgentBoard" \
   --avoid "Secrets, production data, generated build output" \
   --optional-skills "frontend design, accessibility, CI review"
+```
+
+Or use interactive mode:
+
+```bash
+your-crew init --target ../target-repo --interactive
 ```
 
 The generated profile also records the initial setup questionnaire:
@@ -154,6 +174,12 @@ The generated profile also records the initial setup questionnaire:
 - Which optional specialists or skills might be useful later?
 
 This first pass does not implement skills, MCP integrations, parallel agents, or background automation. The project profile includes `Enabled Agents` and `Enabled Skills` sections so those can be added deliberately later.
+
+To remove the local command after testing:
+
+```bash
+npm unlink -g your-crew
+```
 
 ## First Completed Workflow
 
@@ -203,6 +229,7 @@ Current project state:
 - `.agentboard/agents/`: role-specific agent instructions
 - `.agentboard/artifacts/`: reusable task deliverables
 - `docs/natural-language-demo-workflows.md`: demo notes for conversational orchestration and workflow-runner routing
+- `bin/your-crew.js`: local CLI entrypoint for `your-crew init`
 - `scripts/init-agentboard.js`: first-pass initializer for scaffolding Your Crew into another repository
 - `scripts/validate-agentboard.js`: read-only AgentBoard validator
 - `package.json`: project metadata and `npm run validate` script

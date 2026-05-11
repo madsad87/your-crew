@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const readline = require("readline");
 
 const sourceRoot = path.resolve(__dirname, "..");
 const boardFolders = [
@@ -30,12 +31,30 @@ const copyFiles = [
 ];
 
 const setupQuestions = [
-  "What are we building?",
-  "What type of project is this?",
-  "What technology stack is used?",
-  "What is the main project goal?",
-  "What should agents avoid touching?",
-  "Which optional specialists or skills might be useful later?",
+  {
+    key: "projectName",
+    prompt: "What are we building?",
+  },
+  {
+    key: "projectType",
+    prompt: "What type of project is this?",
+  },
+  {
+    key: "techStack",
+    prompt: "What technology stack is used?",
+  },
+  {
+    key: "goal",
+    prompt: "What is the main project goal?",
+  },
+  {
+    key: "avoid",
+    prompt: "What should agents avoid touching?",
+  },
+  {
+    key: "optionalSkills",
+    prompt: "Which optional specialists or skills might be useful later?",
+  },
 ];
 
 function parseArgs(argv) {
@@ -43,6 +62,7 @@ function parseArgs(argv) {
     target: process.cwd(),
     dryRun: false,
     force: false,
+    interactive: false,
     help: false,
     answers: {},
   };
@@ -56,6 +76,8 @@ function parseArgs(argv) {
       options.dryRun = true;
     } else if (arg === "--force") {
       options.force = true;
+    } else if (arg === "--interactive") {
+      options.interactive = true;
     } else if (arg === "--target") {
       options.target = readValue(argv, index, arg);
       index += 1;
@@ -108,13 +130,14 @@ function readValue(argv, index, flag) {
   return value;
 }
 
-function printHelp() {
-  console.log(`Usage: node scripts/init-agentboard.js [options]
+function printHelp(commandName = "node scripts/init-agentboard.js") {
+  console.log(`Usage: ${commandName} [options]
 
 Options:
   --target <path>             Target repository path. Defaults to current directory.
   --dry-run                   Show planned changes without writing files.
   --force                     Allow overwriting existing files.
+  --interactive               Ask setup questions in the terminal.
   --project-name <text>       Answer: What are we building?
   --project-type <text>       Answer: What type of project is this?
   --tech-stack <text>         Answer: What technology stack is used?
@@ -124,6 +147,45 @@ Options:
   --help                      Show this help.
 
 The initializer is safe by default: existing files are skipped unless --force is provided.`);
+}
+
+async function askSetupQuestions(options) {
+  if (!process.stdin.isTTY) {
+    const lines = fs.readFileSync(0, "utf8").split(/\r?\n/);
+    setupQuestions.forEach((question, index) => {
+      console.log(question.prompt);
+      const answer = lines[index] ? lines[index].trim() : "";
+      if (answer) {
+        options.answers[question.key] = answer;
+      }
+    });
+    return;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  try {
+    for (const question of setupQuestions) {
+      const current = options.answers[question.key];
+      const suffix = current ? ` [${current}]` : "";
+      const answer = await askQuestion(rl, `${question.prompt}${suffix} `);
+      const trimmed = answer.trim();
+      if (trimmed) {
+        options.answers[question.key] = trimmed;
+      }
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+function askQuestion(rl, question) {
+  return new Promise((resolve) => {
+    rl.question(question, resolve);
+  });
 }
 
 function ensureTargetExists(target, dryRun) {
@@ -264,12 +326,17 @@ function relativeToCwd(filePath) {
   return path.relative(process.cwd(), filePath).replace(/\\/g, "/") || ".";
 }
 
-function run() {
-  const options = parseArgs(process.argv.slice(2));
+async function run(argv = process.argv.slice(2), config = {}) {
+  const options = parseArgs(argv);
+  const commandName = config.commandName || "node scripts/init-agentboard.js";
 
   if (options.help) {
-    printHelp();
+    printHelp(commandName);
     return;
+  }
+
+  if (options.interactive) {
+    await askSetupQuestions(options);
   }
 
   console.log(`Initializing Your Crew in ${options.target}`);
@@ -291,15 +358,21 @@ function run() {
   console.log("");
   console.log("Initial setup questionnaire:");
   for (const question of setupQuestions) {
-    console.log(`- ${question}`);
+    console.log(`- ${question.prompt}`);
   }
   console.log("");
   console.log("Initializer complete.");
 }
 
-try {
-  run();
-} catch (error) {
-  console.error(`Initializer failed: ${error.message}`);
-  process.exit(1);
+module.exports = {
+  run,
+  parseArgs,
+  createProjectProfile,
+};
+
+if (require.main === module) {
+  run().catch((error) => {
+    console.error(`Initializer failed: ${error.message}`);
+    process.exit(1);
+  });
 }
