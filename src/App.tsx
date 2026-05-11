@@ -477,10 +477,15 @@ function TaskCard({
           <p className="line-clamp-3 break-words text-xs leading-5 text-stone-600 dark:text-stone-300">{objective}</p>
         ) : null}
 
-        <div className="flex flex-wrap gap-2 text-xs">
-          <Pill label={task.assignedAgent || "unassigned"} />
-          <Pill label={dependencyLabel} tone={dependencyLabel.includes("blocked") ? "warning" : "neutral"} />
-          {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2 text-xs">
+            <Pill label={task.assignedAgent || "unassigned"} />
+            <Pill label={dependencyLabel} tone={dependencyLabel.includes("blocked") ? "warning" : "neutral"} />
+            {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-stone-400 transition-colors group-hover:text-emerald-700 group-focus-visible:text-emerald-700 dark:text-stone-500 dark:group-hover:text-emerald-300 dark:group-focus-visible:text-emerald-300">
+            Details -&gt;
+          </span>
         </div>
 
       </div>
