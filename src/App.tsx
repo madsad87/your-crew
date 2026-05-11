@@ -516,9 +516,11 @@ function TaskCard({
 }) {
   const dependencyLabel = getDependencyLabel(task, doneIds);
   const objective = task.sections.Objective?.content;
+  const hasSkills = (task.skills ?? []).length > 0;
 
   return (
     <button
+      aria-label={`Open details for ${task.id}: ${task.title}`}
       className={`group relative min-w-0 overflow-hidden rounded-lg border bg-white text-left shadow-sm transition-colors hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:bg-stone-900 dark:hover:border-stone-600 dark:focus:ring-offset-stone-950 ${
         isSelected ? "border-emerald-400" : "border-stone-200"
       } dark:border-stone-700`}
@@ -543,15 +545,23 @@ function TaskCard({
           <p className="line-clamp-3 break-words text-xs leading-5 text-stone-600 dark:text-stone-300">{objective}</p>
         ) : null}
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-2 text-xs">
-            <Pill label={task.assignedAgent || "unassigned"} />
-            <Pill label={dependencyLabel} tone={dependencyLabel.includes("blocked") ? "warning" : "neutral"} />
-            {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
-            <SkillChips skills={task.skills ?? []} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0 space-y-2">
+            {hasSkills ? (
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                Skills
+              </p>
+            ) : null}
+            <div className="flex min-w-0 flex-wrap gap-2 text-xs">
+              <Pill label={task.assignedAgent || "unassigned"} />
+              <Pill label={dependencyLabel} tone={dependencyLabel.includes("blocked") ? "warning" : "neutral"} />
+              {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+              <SkillChips skills={task.skills ?? []} />
+            </div>
           </div>
-          <span className="shrink-0 text-xs font-semibold text-stone-400 transition-colors group-hover:text-emerald-700 group-focus-visible:text-emerald-700 dark:text-stone-500 dark:group-hover:text-emerald-300 dark:group-focus-visible:text-emerald-300">
-            Details -&gt;
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-stone-200 bg-stone-50 px-2.5 py-1 text-xs font-semibold text-stone-600 transition-colors group-hover:border-emerald-200 group-hover:bg-emerald-50 group-hover:text-emerald-800 group-focus-visible:border-emerald-300 group-focus-visible:bg-emerald-50 group-focus-visible:text-emerald-800 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300 dark:group-hover:border-emerald-800 dark:group-hover:bg-emerald-950 dark:group-hover:text-emerald-200 dark:group-focus-visible:border-emerald-700 dark:group-focus-visible:bg-emerald-950 dark:group-focus-visible:text-emerald-200">
+            <span>Open details</span>
+            <span aria-hidden="true">-&gt;</span>
           </span>
         </div>
 
@@ -692,9 +702,9 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
               label="Dependencies"
               value={task.dependsOn.length > 0 ? task.dependsOn.join(", ") : "none"}
             />
-            {(task.skills ?? []).length > 0 ? <MetadataItem label="Skills" value={(task.skills ?? []).join(", ")} /> : null}
+            {(task.skills ?? []).length > 0 ? <MetadataListItem label="Skills" values={task.skills ?? []} /> : null}
             {(task.expectedFiles ?? []).length > 0 ? (
-              <MetadataItem label="Expected Files" value={(task.expectedFiles ?? []).join(", ")} />
+              <MetadataListItem label="Expected Files" values={task.expectedFiles ?? []} breakAll />
             ) : null}
             {task.parallelSafe != null ? (
               <MetadataItem
@@ -732,6 +742,34 @@ function MetadataItem({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-950">
       <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold text-stone-900 dark:text-stone-100">{value}</p>
+    </div>
+  );
+}
+
+function MetadataListItem({
+  breakAll = false,
+  label,
+  values,
+}: {
+  breakAll?: boolean;
+  label: string;
+  values: string[];
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-950">
+      <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</p>
+      <div className="mt-2 flex min-w-0 flex-wrap gap-2">
+        {values.map((value) => (
+          <span
+            className={`rounded-full bg-white px-2 py-1 text-xs font-semibold text-stone-700 ring-1 ring-stone-200 dark:bg-stone-900 dark:text-stone-200 dark:ring-stone-700 ${
+              breakAll ? "break-all" : "break-words"
+            }`}
+            key={value}
+          >
+            {value}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }

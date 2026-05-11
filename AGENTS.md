@@ -262,6 +262,16 @@ Agents should load skills when relevant:
 - If a task lists a skill that does not exist in `.agentboard/skills/` or `.agentboard/skill-registry.md`, document a blocker or warning before continuing.
 - Treat skills as guidance only unless a future task explicitly adds tool or MCP behavior.
 
+When a task explicitly lists skills in frontmatter, the acting agent must:
+
+- Read each listed skill file before doing the work.
+- Apply the relevant checklist, playbook, or guidance from each listed skill.
+- Include `Skill used: {skill}` in Completion Notes for each listed skill.
+- Document which parts of each skill were applied.
+- Document any listed skill checks that were not applicable and why.
+
+Tasks without `skills` are not required to load skills. Skills remain selective task guidance and do not become mandatory for every task.
+
 Task skill metadata may use:
 
 ```yaml
@@ -470,4 +480,3 @@ This system prioritizes:
 - minimal hidden state
 
 Agents should operate predictably, conservatively, and collaboratively through the shared Markdown task system.
-

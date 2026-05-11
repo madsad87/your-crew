@@ -43,6 +43,12 @@ parallel_safe: false
 
 ## Artifacts Created or Used
 
+## Skill Usage
+
+- Skill used:
+- Applied:
+- Not applicable:
+
 ## Assumptions Made
 
 ## Validation Performed
