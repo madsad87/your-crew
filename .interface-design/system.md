@@ -45,6 +45,13 @@
 - Success: green-700.
 - Warning: amber-700.
 - Danger: red-700.
+- Dark canvas: stone-950.
+- Dark surface 1: stone-900.
+- Dark surface 2: stone-900/80.
+- Dark surface 3: stone-800.
+- Dark border: stone-700.
+- Dark foreground: stone-100.
+- Dark secondary: stone-300.
 
 ## Depth
 - Strategy: borders and surface-color shifts first, subtle shadow only for task cards and columns.
@@ -59,6 +66,7 @@
 
 ### Forms and controls
 - Prefer compact controls and explicit labels.
+- Theme toggles should sit near product identity and use a small segmented switch treatment.
 
 ### Tables or data views
 - Use dense cards for task scanability before introducing full tables.

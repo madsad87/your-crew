@@ -69,6 +69,13 @@ export function App() {
   const [board, setBoard] = useState<AgentBoard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.localStorage.getItem("agentboard-theme") === "dark";
+  });
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [validation, setValidation] = useState<ValidationResponse | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -132,6 +139,10 @@ export function App() {
     void runValidation();
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem("agentboard-theme", isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
+
   const doneIds = useMemo(() => {
     return new Set(board?.columns.done.map((task) => task.id) ?? []);
   }, [board]);
@@ -144,18 +155,21 @@ export function App() {
   const selectedTask = board?.tasks.find((task) => task.id === selectedTaskId) ?? null;
 
   return (
-    <main className="min-h-screen bg-stone-50 text-stone-950">
-      <section className="border-b border-stone-200 bg-white">
+    <main className={`min-h-screen bg-stone-50 text-stone-950 dark:bg-stone-950 dark:text-stone-100 ${isDarkMode ? "dark" : ""}`}>
+      <section className="border-b border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-6 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-wide text-emerald-700">
-                Your Crew
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold text-stone-950">
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-sm font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                  Your Crew
+                </p>
+                <ThemeToggle isDarkMode={isDarkMode} onToggle={() => setIsDarkMode((current) => !current)} />
+              </div>
+              <h1 className="mt-2 text-3xl font-semibold text-stone-950 dark:text-stone-100">
                 AgentBoard Dashboard
               </h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600 dark:text-stone-300">
                 A local Kanban view for Markdown task files moving through the AgentBoard workflow.
               </p>
             </div>
@@ -178,15 +192,15 @@ export function App() {
         {error ? <ErrorState message={error} /> : null}
         <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {workflowColumns.map((column) => (
-            <section className={`min-h-80 min-w-0 rounded-lg border shadow-sm ${column.tone}`} key={column.id}>
-              <header className="border-b border-stone-200 px-4 py-3">
+            <section className={`min-h-80 min-w-0 rounded-lg border shadow-sm dark:border-stone-700 dark:bg-stone-900/80 ${column.tone}`} key={column.id}>
+              <header className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold text-stone-900">{column.label}</h2>
+                  <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{column.label}</h2>
                   <span className={`rounded-full px-2 py-1 text-xs font-semibold ${column.badge}`}>
                     {board?.columns[column.id].length ?? 0}
                   </span>
                 </div>
-                <p className="mt-1 text-xs leading-5 text-stone-500">{column.hint}</p>
+                <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">{column.hint}</p>
               </header>
               <div className="flex min-h-56 flex-col gap-3 px-3 py-3">
                 {isLoading ? <ColumnLoading /> : null}
@@ -218,10 +232,28 @@ export function App() {
 
 function StatusStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
-      <p className="text-xs font-medium text-stone-500">{label}</p>
-      <p className="mt-1 text-sm font-semibold text-stone-900">{value}</p>
+    <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-800">
+      <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-100">{value}</p>
     </div>
+  );
+}
+
+function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode: boolean; onToggle: () => void }) {
+  return (
+    <button
+      aria-pressed={isDarkMode}
+      className="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-700 dark:focus:ring-offset-stone-900"
+      onClick={onToggle}
+      type="button"
+    >
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${
+          isDarkMode ? "bg-emerald-300" : "bg-stone-300"
+        }`}
+      />
+      <span>{isDarkMode ? "Dark mode" : "Light mode"}</span>
+    </button>
   );
 }
 
@@ -250,7 +282,7 @@ function ValidationPanel({
       : "Validation needs attention";
 
   return (
-    <section className={`mb-4 rounded-lg border px-4 py-3 ${statusClass}`}>
+    <section className={`mb-4 rounded-lg border px-4 py-3 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 ${statusClass}`}>
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-sm font-semibold">{statusText}</p>
@@ -259,10 +291,10 @@ function ValidationPanel({
               ? `Checked ${checkedTaskCount} task file${checkedTaskCount === 1 ? "" : "s"}.`
               : "Validation has not completed yet."}
           </p>
-          {error ? <p className="mt-2 text-xs font-medium text-red-700">{error}</p> : null}
+          {error ? <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-300">{error}</p> : null}
         </div>
         <button
-          className="w-fit rounded-lg border border-current px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="w-fit rounded-lg border border-current px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-stone-800 dark:focus:ring-offset-stone-900"
           disabled={isValidating}
           onClick={onRefresh}
           type="button"
@@ -274,9 +306,9 @@ function ValidationPanel({
       {issues.length > 0 ? (
         <div className="mt-3 space-y-2">
           {issues.map((issue) => (
-            <div className="rounded-md border border-amber-200 bg-white/70 px-3 py-2" key={`${issue.file}:${issue.message}`}>
-              <p className="break-all text-xs font-semibold text-stone-700">{issue.file}</p>
-              <p className="mt-1 text-xs text-stone-600">{issue.message}</p>
+            <div className="rounded-md border border-amber-200 bg-white/70 px-3 py-2 dark:border-amber-700 dark:bg-stone-800" key={`${issue.file}:${issue.message}`}>
+              <p className="break-all text-xs font-semibold text-stone-700 dark:text-stone-200">{issue.file}</p>
+              <p className="mt-1 text-xs text-stone-600 dark:text-stone-300">{issue.message}</p>
             </div>
           ))}
         </div>
@@ -303,9 +335,9 @@ function TaskCard({
 
   return (
     <button
-      className={`group relative min-w-0 overflow-hidden rounded-lg border bg-white text-left shadow-sm transition-colors hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 ${
+      className={`group relative min-w-0 overflow-hidden rounded-lg border bg-white text-left shadow-sm transition-colors hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:bg-stone-900 dark:hover:border-stone-600 dark:focus:ring-offset-stone-950 ${
         isSelected ? "border-emerald-400" : "border-stone-200"
-      }`}
+      } dark:border-stone-700`}
       onClick={onSelect}
       type="button"
     >
@@ -313,18 +345,18 @@ function TaskCard({
       <div className="space-y-3 px-4 py-3 pl-5">
         <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:justify-between">
           <div className="min-w-0">
-            <p className="text-xs font-semibold text-stone-500">{task.id}</p>
-            <h3 className="mt-1 break-words text-sm font-semibold leading-5 text-stone-950">
+            <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">{task.id}</p>
+            <h3 className="mt-1 break-words text-sm font-semibold leading-5 text-stone-950 dark:text-stone-100">
               {task.title}
             </h3>
           </div>
-          <span className="shrink-0 rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700">
+          <span className="shrink-0 rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700 dark:bg-stone-800 dark:text-stone-200">
             {task.priority || "medium"}
           </span>
         </div>
 
         {objective ? (
-          <p className="line-clamp-3 break-words text-xs leading-5 text-stone-600">{objective}</p>
+          <p className="line-clamp-3 break-words text-xs leading-5 text-stone-600 dark:text-stone-300">{objective}</p>
         ) : null}
 
         <div className="flex flex-wrap gap-2 text-xs">
@@ -333,7 +365,6 @@ function TaskCard({
           {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
         </div>
 
-        <p className="truncate text-xs text-stone-400">{task.relativePath}</p>
       </div>
     </button>
   );
@@ -345,14 +376,14 @@ function Pill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "
       ? "bg-red-50 text-red-700 ring-red-200"
       : tone === "warning"
         ? "bg-amber-50 text-amber-800 ring-amber-200"
-        : "bg-stone-50 text-stone-600 ring-stone-200";
+        : "bg-stone-50 text-stone-600 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700";
 
   return <span className={`rounded-full px-2 py-1 font-medium ring-1 ${toneClass}`}>{label}</span>;
 }
 
 function ColumnLoading() {
   return (
-    <div className="rounded-lg border border-dashed border-stone-200 bg-white/70 px-4 py-6 text-center text-sm text-stone-500">
+    <div className="rounded-lg border border-dashed border-stone-200 bg-white/70 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-900/70 dark:text-stone-400">
       Loading tasks
     </div>
   );
@@ -360,7 +391,7 @@ function ColumnLoading() {
 
 function ColumnEmpty({ label }: { label: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-stone-200 bg-white/70 px-4 py-6 text-center text-sm text-stone-500">
+    <div className="rounded-lg border border-dashed border-stone-200 bg-white/70 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-900/70 dark:text-stone-400">
       No {label.toLowerCase()} tasks
     </div>
   );
@@ -368,7 +399,7 @@ function ColumnEmpty({ label }: { label: string }) {
 
 function ErrorState({ message }: { message: string }) {
   return (
-    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
       {message}
     </div>
   );
@@ -399,23 +430,23 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
   ];
 
   return (
-    <div className="fixed inset-0 z-20 flex justify-end bg-stone-950/20">
+    <div className="fixed inset-0 z-20 flex justify-end bg-stone-950/20 dark:bg-stone-950/70">
       <button
         aria-label="Close task detail panel"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
         type="button"
       />
-      <aside className="relative flex h-full w-full max-w-2xl flex-col border-l border-stone-200 bg-white shadow-xl">
-        <header className="border-b border-stone-200 px-5 py-4">
+      <aside className="relative flex h-full w-full max-w-2xl flex-col border-l border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900">
+        <header className="border-b border-stone-200 px-5 py-4 dark:border-stone-800">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-stone-500">{task.id}</p>
-              <h2 className="mt-1 break-words text-xl font-semibold text-stone-950">{task.title}</h2>
-              <p className="mt-2 break-all text-xs text-stone-500">{task.relativePath}</p>
+              <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">{task.id}</p>
+              <h2 className="mt-1 break-words text-xl font-semibold text-stone-950 dark:text-stone-100">{task.title}</h2>
+              <p className="mt-2 break-all text-xs text-stone-500 dark:text-stone-400">{task.relativePath}</p>
             </div>
             <button
-              className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2"
+              className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:border-stone-700 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800 dark:focus:ring-offset-stone-900"
               onClick={onClose}
               type="button"
             >
@@ -437,9 +468,9 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
             <MetadataItem label="Status Match" value={task.statusMatchesFolder ? "yes" : "no"} />
           </section>
 
-          <section className="mt-5 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">
-            <h3 className="text-xs font-semibold uppercase text-stone-500">Frontmatter</h3>
-            <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-stone-700">
+          <section className="mt-5 rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 dark:border-stone-700 dark:bg-stone-950">
+            <h3 className="text-xs font-semibold uppercase text-stone-500 dark:text-stone-400">Frontmatter</h3>
+            <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap break-words text-xs leading-5 text-stone-700 dark:text-stone-300">
               {JSON.stringify(task.frontmatter, null, 2)}
             </pre>
           </section>
@@ -461,23 +492,23 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
 
 function MetadataItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
-      <p className="text-xs font-medium text-stone-500">{label}</p>
-      <p className="mt-1 break-words text-sm font-semibold text-stone-900">{value}</p>
+    <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-950">
+      <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold text-stone-900 dark:text-stone-100">{value}</p>
     </div>
   );
 }
 
 function TaskSection({ content, title }: { content: string | undefined; title: string }) {
   return (
-    <section className="rounded-lg border border-stone-200 bg-white px-4 py-3">
-      <h3 className="text-sm font-semibold text-stone-950">{title}</h3>
+    <section className="rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-950">
+      <h3 className="text-sm font-semibold text-stone-950 dark:text-stone-100">{title}</h3>
       {content ? (
-        <pre className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-stone-700">
+        <pre className="mt-3 whitespace-pre-wrap break-words text-sm leading-6 text-stone-700 dark:text-stone-300">
           {content}
         </pre>
       ) : (
-        <p className="mt-3 text-sm text-stone-500">No content recorded.</p>
+        <p className="mt-3 text-sm text-stone-500 dark:text-stone-400">No content recorded.</p>
       )}
     </section>
   );
