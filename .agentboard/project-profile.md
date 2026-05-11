@@ -41,10 +41,14 @@ To be able to build and create further functionality for the "your-crew" tools
 - content-creator
 - workflow-runner
 - repo-ops
+- ux-ui
 
 ## Enabled Skills
 
-- a UX/UI agent or skill would likely be useful here since we are building a frontend display tool.
+- UX/UI specialist guidance is enabled on this dashboard branch for frontend interface work.
+- Use `ux-ui` before builder implementation when a task affects usability, visual hierarchy, interaction design, responsive behavior, accessibility expectations, or reusable interface patterns.
+- `ux-ui` is advisory and should produce design guidance, acceptance considerations, and review notes; builder remains responsible for implementation.
+- Do not treat this dashboard-branch specialist as a change to the base locked crew on `main`.
 
 ## Future Extensions
 
