@@ -65,6 +65,9 @@ const workflowColumns: Array<{
   },
 ];
 
+const actionableColumnIds: TaskStatus[] = ["ready", "in-progress", "review", "blocked"];
+const donePreviewLimit = 4;
+
 export function App() {
   const [board, setBoard] = useState<AgentBoard | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -151,7 +154,19 @@ export function App() {
   const activeTasks =
     (board?.columns.ready.length ?? 0) +
     (board?.columns["in-progress"].length ?? 0) +
-    (board?.columns.review.length ?? 0);
+    (board?.columns.review.length ?? 0) +
+    (board?.columns.blocked.length ?? 0);
+  const activeWorkItems = useMemo(() => {
+    if (!board) {
+      return [];
+    }
+
+    return actionableColumnIds.flatMap((columnId) => {
+      const column = getWorkflowColumn(columnId);
+
+      return board.columns[columnId].map((task) => ({ column, task }));
+    });
+  }, [board]);
   const selectedTask = board?.tasks.find((task) => task.id === selectedTaskId) ?? null;
 
   return (
@@ -190,36 +205,52 @@ export function App() {
           validation={validation}
         />
         {error ? <ErrorState message={error} /> : null}
+        <ActiveWorkPanel
+          doneIds={doneIds}
+          isLoading={isLoading}
+          items={activeWorkItems}
+          onSelectTask={(taskId) => setSelectedTaskId(taskId)}
+          selectedTaskId={selectedTaskId}
+        />
         <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-          {workflowColumns.map((column) => (
-            <section className={`min-h-80 min-w-0 rounded-lg border shadow-sm dark:border-stone-700 dark:bg-stone-900/80 ${column.tone}`} key={column.id}>
-              <header className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
-                <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{column.label}</h2>
-                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${column.badge}`}>
-                    {board?.columns[column.id].length ?? 0}
-                  </span>
+          {workflowColumns.map((column) => {
+            const columnTasks = board?.columns[column.id] ?? [];
+            const visibleTasks =
+              column.id === "done" ? columnTasks.slice(0, donePreviewLimit) : columnTasks;
+            const hiddenDoneCount =
+              column.id === "done" ? Math.max(columnTasks.length - visibleTasks.length, 0) : 0;
+
+            return (
+              <section className={`min-h-80 min-w-0 rounded-lg border shadow-sm dark:border-stone-700 dark:bg-stone-900/80 ${column.tone}`} key={column.id}>
+                <header className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold text-stone-900 dark:text-stone-100">{column.label}</h2>
+                    <span className={`rounded-full px-2 py-1 text-xs font-semibold ${column.badge}`}>
+                      {columnTasks.length}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">{column.hint}</p>
+                </header>
+                <div className="flex min-h-56 flex-col gap-3 px-3 py-3">
+                  {isLoading ? <ColumnLoading /> : null}
+                  {!isLoading && columnTasks.length === 0 ? (
+                    <ColumnEmpty label={column.label} />
+                  ) : null}
+                  {visibleTasks.map((task) => (
+                    <TaskCard
+                      column={column}
+                      doneIds={doneIds}
+                      isSelected={task.id === selectedTaskId}
+                      key={task.relativePath}
+                      onSelect={() => setSelectedTaskId(task.id)}
+                      task={task}
+                    />
+                  ))}
+                  {hiddenDoneCount > 0 ? <DonePreviewSummary hiddenCount={hiddenDoneCount} /> : null}
                 </div>
-                <p className="mt-1 text-xs leading-5 text-stone-500 dark:text-stone-400">{column.hint}</p>
-              </header>
-              <div className="flex min-h-56 flex-col gap-3 px-3 py-3">
-                {isLoading ? <ColumnLoading /> : null}
-                {!isLoading && board?.columns[column.id].length === 0 ? (
-                  <ColumnEmpty label={column.label} />
-                ) : null}
-                {board?.columns[column.id].map((task) => (
-                  <TaskCard
-                    column={column}
-                    doneIds={doneIds}
-                    isSelected={task.id === selectedTaskId}
-                    key={task.relativePath}
-                    onSelect={() => setSelectedTaskId(task.id)}
-                    task={task}
-                  />
-                ))}
-              </div>
-            </section>
-          ))}
+              </section>
+            );
+          })}
         </div>
       </section>
 
@@ -230,12 +261,99 @@ export function App() {
   );
 }
 
+function getWorkflowColumn(columnId: TaskStatus) {
+  return workflowColumns.find((column) => column.id === columnId) ?? workflowColumns[0];
+}
+
 function StatusStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 dark:border-stone-700 dark:bg-stone-800">
       <p className="text-xs font-medium text-stone-500 dark:text-stone-400">{label}</p>
       <p className="mt-1 text-sm font-semibold text-stone-900 dark:text-stone-100">{value}</p>
     </div>
+  );
+}
+
+function ActiveWorkPanel({
+  doneIds,
+  isLoading,
+  items,
+  onSelectTask,
+  selectedTaskId,
+}: {
+  doneIds: Set<string>;
+  isLoading: boolean;
+  items: Array<{ column: (typeof workflowColumns)[number]; task: AgentBoardTask }>;
+  onSelectTask: (taskId: string) => void;
+  selectedTaskId: string | null;
+}) {
+  if (isLoading) {
+    return (
+      <section className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-900">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-sm font-semibold text-stone-950 dark:text-stone-100">Active work</h2>
+          <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">Loading attention-worthy tasks.</p>
+        </div>
+      </section>
+    );
+  }
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-900">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-950 dark:text-stone-100">Active work</h2>
+          <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">
+            Ready, in progress, review, and blocked tasks needing attention.
+          </p>
+        </div>
+        <p className="text-xs font-semibold text-stone-500 dark:text-stone-400">
+          {items.length} task{items.length === 1 ? "" : "s"}
+        </p>
+      </div>
+      <div className="mt-3 divide-y divide-stone-200 overflow-hidden rounded-lg border border-stone-200 dark:divide-stone-800 dark:border-stone-800">
+        {items.map(({ column, task }) => (
+          <button
+            className={`group grid w-full min-w-0 grid-cols-[4px_1fr] bg-stone-50 text-left transition-colors hover:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-600 dark:bg-stone-950 dark:hover:bg-stone-900 ${
+              task.id === selectedTaskId ? "ring-2 ring-inset ring-emerald-500" : ""
+            }`}
+            key={`active-${task.relativePath}`}
+            onClick={() => onSelectTask(task.id)}
+            type="button"
+          >
+            <span className={column.rail} />
+            <span className="flex min-w-0 flex-col gap-2 px-3 py-3 md:flex-row md:items-center md:justify-between">
+              <span className="min-w-0">
+                <span className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded-full px-2 py-1 text-xs font-semibold ${column.badge}`}>
+                    {column.label}
+                  </span>
+                  <span className="text-xs font-semibold text-stone-500 dark:text-stone-400">{task.id}</span>
+                  <span className="rounded-full bg-stone-100 px-2 py-1 text-xs font-semibold text-stone-700 dark:bg-stone-800 dark:text-stone-200">
+                    {task.priority || "medium"}
+                  </span>
+                </span>
+                <span className="mt-2 block break-words text-sm font-semibold leading-5 text-stone-950 dark:text-stone-100">
+                  {task.title}
+                </span>
+              </span>
+              <span className="flex shrink-0 flex-wrap gap-2 text-xs">
+                <Pill label={task.assignedAgent || "unassigned"} />
+                <Pill
+                  label={getDependencyLabel(task, doneIds)}
+                  tone={getDependencyLabel(task, doneIds).includes("blocked") ? "warning" : "neutral"}
+                />
+                {!task.statusMatchesFolder ? <Pill label="status mismatch" tone="danger" /> : null}
+              </span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -379,6 +497,14 @@ function Pill({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "
         : "bg-stone-50 text-stone-600 ring-stone-200 dark:bg-stone-800 dark:text-stone-300 dark:ring-stone-700";
 
   return <span className={`rounded-full px-2 py-1 font-medium ring-1 ${toneClass}`}>{label}</span>;
+}
+
+function DonePreviewSummary({ hiddenCount }: { hiddenCount: number }) {
+  return (
+    <div className="rounded-lg border border-dashed border-green-200 bg-white/70 px-3 py-3 text-xs leading-5 text-green-800 dark:border-green-800 dark:bg-stone-900/70 dark:text-green-300">
+      {hiddenCount} completed task{hiddenCount === 1 ? "" : "s"} hidden from this preview. Done count remains in the lane header.
+    </div>
+  );
 }
 
 function ColumnLoading() {
