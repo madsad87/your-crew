@@ -1,24 +1,101 @@
-# AgentBoard Dashboard
+# AgentBoard Dashboard (Experimental Branch)
 
-A local React dashboard for viewing AgentBoard Markdown tasks as a Kanban workflow.
+This branch is the **experimental dashboard workspace** for AgentBoard and `your-crew`.
 
-This project is a companion UI for the Your Crew / AgentBoard workflow. AgentBoard uses Markdown task files under `.agentboard/` as the source of truth for AI-agent coordination. This dashboard makes those task files visible as workflow lanes so a project owner can quickly see what is in inbox, ready, in progress, review, done, or blocked.
+It goes beyond the stable `main` experience by combining:
 
-## Setup
+- a local React/Vite Kanban dashboard,
+- a read-only board API for rendering and validating Markdown tasks,
+- workflow helper scripts for safe task movement and preflight checks,
+- early Skill Library support (skills metadata + registry surfacing), and
+- lightweight smoke/validation tooling for iterative protocol development.
+
+If you are looking for the conservative baseline workflow, use `main`. If you want to test dashboard-first coordination and in-progress protocol ideas, use this branch.
+
+## What This Branch Is For
+
+- Rapidly iterating on AgentBoard UX and task metadata behavior.
+- Inspecting `.agentboard/` state visually without replacing the Markdown source-of-truth model.
+- Testing validation/reporting behavior before broader rollout.
+- Prototyping workflow ergonomics (preflight, metadata smoke checks, dashboard validation endpoint).
+
+## Current Capabilities
+
+### Dashboard UI
+
+- Renders `.agentboard` tasks in Kanban columns: inbox, ready, in-progress, review, done, blocked.
+- Shows task cards with priority, assignment, dependencies, and skill chips.
+- Opens task details with frontmatter + extracted markdown sections.
+- Surfaces Skill Library entries from `.agentboard/skill-registry.md`.
+- Runs board validation from the UI and displays results.
+
+### Local Read-Only API
+
+Vite exposes local endpoints used by the dashboard:
+
+- `GET /api/board`
+  - returns parsed tasks and column-grouped workflow data
+  - includes parsed skills metadata when available
+- `GET /api/tasks/:id`
+  - returns a single parsed task
+- `GET /api/validate` / `POST /api/validate`
+  - runs board validation and returns structured output
+
+### Workflow / CLI Helpers
+
+- `npm run board:preflight -- TASK-0000`
+- `npm run board:move -- TASK-0000 in-progress --agent builder`
+- `npm run smoke:metadata -- TASK-0000`
+- `npm run smoke:dashboard`
+- `npm run validate:board`
+
+## Agent Roles In This Branch
+
+AgentBoard keeps **agents** as stable ownership roles. This branch currently exposes and relies on the active registry below:
+
+| Agent | Primary responsibility |
+| - | - |
+| `orchestrator` | Creates/coordinates dependency-aware tasks |
+| `builder` | Implements task changes and moves completed work to review |
+| `reviewer` | Validates completed work and approves to done |
+| `content-creator` | Produces docs/content artifacts |
+| `workflow-runner` | Executes the board loop across review/ready queues |
+| `repo-ops` | Handles Git/repository operations outside core task workflow |
+| `ux-ui` | Provides interface and usability guidance |
+
+These roles are rendered in task metadata (for assignment/filtering) and remain the source of accountability even when skills are enabled.
+
+## Skill Library (Agent-Specific)
+
+Skills are optional capability overlays that can be loaded per task without changing agent ownership.
+
+| Skill | Status | Applies to agents | Purpose |
+| - | - | - | - |
+| `react-dashboard` | enabled | `builder` | React dashboard implementation patterns for this UI |
+| `accessibility-review` | enabled | `reviewer`, `ux-ui` | Keyboard, labeling, focus, and contrast expectations |
+| `seo-content` | enabled | `content-creator` | Search-aware documentation and content structure guidance |
+| `dashboard-ux` | enabled | `ux-ui`, `builder` | Dashboard hierarchy, density, and interaction guidance |
+
+In the dashboard, enabled skills are surfaced in the **Skill Library** panel and task-level skill chips, while agent filters continue to reflect assigned ownership.
+
+## Intentional Limits
+
+This branch is still **read-only at the dashboard layer**:
+
+- No direct task editing in UI.
+- No claim/approve/create mutations from UI.
+- Markdown task files under `.agentboard/` remain the source of truth.
+
+## Quick Start
 
 ```bash
 npm install
-```
-
-## Local Development
-
-```bash
 npm run dev
 ```
 
-The Vite development server starts the dashboard and exposes the local read-only API used by the UI.
+Then open the local Vite URL to use the dashboard.
 
-## Build And Test
+## Build & Test
 
 ```bash
 npm test
@@ -26,85 +103,15 @@ npm run build
 npm run validate:board
 ```
 
-## Workflow Helpers
+## Project Layout (Relevant)
 
-AgentBoard includes small helper scripts for safer local workflow operations:
+- `src/` – React dashboard UI.
+- `scripts/lib/agentboard-parser.js` – Markdown + frontmatter parsing.
+- `scripts/lib/agentboard-api.js` – Local read-only API implementation.
+- `scripts/validate-agentboard.js` – board validation logic.
+- `docs/skills-library.md` – Skill Library behavior and boundaries.
+- `.agentboard/` – task board source-of-truth and artifacts.
 
-```bash
-npm run board:preflight -- TASK-0025
-npm run board:move -- TASK-0025 in-progress --agent builder
-npm run smoke:metadata -- TASK-0025
-npm run smoke:dashboard
-```
+## Why This README Is Different
 
-- `board:preflight` summarizes task status, assigned agent, skills, expected files, and acceptance progress before implementation.
-- `board:move` moves a task file and updates frontmatter status together.
-- `smoke:metadata` prints only key parsed metadata for one task.
-- `smoke:dashboard` checks the local app shell, board API, and validation API when full browser automation is unavailable.
-
-## Current Scope
-
-The current MVP is read-only. It can:
-
-- Render `.agentboard` task files in Kanban workflow columns.
-- Show task cards with ID, title, priority, assigned agent, dependency state, detail affordance, and skill chips when present.
-- Open a task detail drawer with frontmatter and key Markdown sections.
-- Surface enabled Skill Library entries from `.agentboard/skill-registry.md`.
-- Run AgentBoard validation from the dashboard and show pass/fail status.
-
-It does not edit, move, claim, approve, or create task files.
-
-## Skill Library
-
-This dashboard branch includes a first-pass Skill Library system. Agents remain stable workflow roles; skills are reusable capabilities that agents can load when task frontmatter requests domain-specific guidance.
-
-See [docs/skills-library.md](docs/skills-library.md) for the registry structure, task metadata fields, dashboard behavior, and current MCP/tooling boundary.
-
-## How Board Data Is Read
-
-The dashboard reads Markdown task files from these folders:
-
-- `.agentboard/inbox`
-- `.agentboard/ready`
-- `.agentboard/in-progress`
-- `.agentboard/review`
-- `.agentboard/done`
-- `.agentboard/blocked`
-
-Task parsing lives in `scripts/lib/agentboard-parser.js`. The parser reads YAML frontmatter with `gray-matter`, preserves the Markdown body, extracts top-level sections, and groups tasks by folder status.
-
-The browser does not read the filesystem directly. During local development, Vite loads `scripts/lib/agentboard-api.js`, which exposes read-only API endpoints for the React UI.
-
-## Local API
-
-The Vite development server exposes read-only AgentBoard endpoints for the dashboard:
-
-- `GET /api/board` returns `{ ok, data }`, where `data.tasks` is the full task list and `data.columns` is grouped by AgentBoard status.
-- `GET /api/board` also includes `data.skills` from `.agentboard/skill-registry.md` when available.
-- `GET /api/tasks/:id` returns `{ ok, data }` for a single task or `{ ok: false, status: 404, error }` when the task is missing.
-- `GET /api/validate` or `POST /api/validate` runs `scripts/validate-agentboard.js` and returns `{ ok, data: { exitCode, stdout, stderr, checkedTaskCount, issues } }`.
-
-## Validation
-
-Run AgentBoard validation from the command line:
-
-```bash
-npm run validate:board
-```
-
-The dashboard also runs validation through `/api/validate`. Validation is read-only and uses the existing `scripts/validate-agentboard.js` rules for frontmatter, required sections, status/folder alignment, dependencies, and reviewer approval.
-
-For tasks with enforced skill reporting, validation also checks that review/done task Completion Notes include `Skill used: {skill}` for each listed skill.
-
-## Read-Only Limits
-
-The MVP intentionally avoids task file mutations. Use the Markdown task files and AgentBoard protocol directly for workflow changes until write actions are implemented. The UI should be treated as a viewer and validator, not as the source of truth.
-
-## Sensible Next Features
-
-- Add safe workflow actions for moving tasks between folders while updating frontmatter status.
-- Add task creation from `.agentboard/templates/task.md`.
-- Add filters by assigned agent, priority, status mismatch, and dependency state.
-- Add search across task titles, sections, and source paths.
-- Add artifact links from `.agentboard/artifacts`.
-- Add production packaging if the dashboard needs to run outside Vite development mode.
+This README describes the branch as an **experimental integration surface**, not only an MVP viewer. It reflects the branch’s broader tooling and protocol work that may not exist (or may differ) on `main`.
