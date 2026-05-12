@@ -1,5 +1,8 @@
 # AgentBoard Dashboard (Experimental Branch)
 
+<img width="1410" height="904" alt="Screenshot 2026-05-12 at 11 04 35 AM" src="https://github.com/user-attachments/assets/4ef4dc40-ef39-4932-bd8b-f9aecb12bdde" />
+
+
 This branch is the **experimental dashboard workspace** for AgentBoard and `your-crew`.
 
 It goes beyond the stable `main` experience by combining:
