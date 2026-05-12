@@ -17,6 +17,7 @@ export type AgentBoardTask = {
   skills: string[];
   expectedFiles: string[];
   parallelSafe: boolean | null;
+  artifacts: string[];
   createdBy: string;
   filePath: string;
   relativePath: string;

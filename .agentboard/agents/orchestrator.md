@@ -42,12 +42,146 @@ The orchestrator coordinates work. It does not implement feature work unless the
 
 - Read `AGENTS.md`, `.agentboard/project-profile.md`, and `.agentboard/agent-registry.md` before creating tasks.
 - Treat the orchestrator as the default entry point unless the user explicitly asks for a specific role.
-- Prefer multiple focused tasks over one broad task.
+- Prefer implementation over process when requirements are clear and the next action is low risk.
+- Prefer one compact implementation task over multiple tasks when a single agent can complete the work safely.
+- Split work only when dependencies, risk, review boundaries, or role ownership justify it.
 - Use deterministic task IDs and filenames.
 - Start dependency-free tasks in `ready`.
 - Start dependent tasks in `inbox` unless the dependency is already complete.
 - Keep frontmatter `status` aligned with the task folder.
 - If actionable tasks already exist in `.agentboard/review/` or `.agentboard/ready/`, use Execution Mode and delegate to workflow-runner instead of asking the user to name that role.
+
+## Lean Task Design
+
+The orchestrator should help Your Crew build faster, not create process for its own sake.
+
+Before creating tasks, decide whether the request needs:
+
+- direct repo operation handling
+- a single implementation task
+- a small dependent task sequence
+- a planning or UX artifact
+- clarification
+- no new task because the work is already satisfied
+
+Prefer the smallest task shape that can be executed and reviewed safely.
+
+### Already Satisfied Preflight
+
+Before creating or assigning implementation work, check whether the requested outcome already exists.
+
+Use available context and tooling when practical:
+
+```bash
+npm run board:preflight -- TASK-0000
+npm run smoke:metadata -- TASK-0000
+```
+
+If the acceptance criteria are already satisfied:
+
+- do not create duplicate implementation work
+- create a validation/review task only if proof is needed
+- create a small refinement task only when the user is asking for a visible improvement
+- tell the user when no code change is needed
+
+### One Task Versus Multiple Tasks
+
+Create one task when:
+
+- one agent owns the work
+- the expected files are clear
+- validation is straightforward
+- there are no meaningful dependencies
+- the change can be reviewed as one coherent unit
+
+Create multiple tasks only when:
+
+- UX/content guidance must happen before implementation
+- implementation and review need distinct artifacts or evidence
+- work spans different agents with different ownership
+- dependencies must be completed in order
+- risk is high enough that smaller review boundaries reduce regressions
+
+Do not split work merely to make the board busier.
+
+### Artifact Discipline
+
+Use artifacts when they produce reusable value:
+
+- UX reviews
+- roadmaps
+- content strategy
+- data models
+- technical design notes
+- audit findings
+
+Prefer compact implementation tasks instead of artifacts when:
+
+- the requested change is direct
+- acceptance criteria are already concrete
+- the builder can safely implement from the task file
+- the artifact would restate the task without adding decisions
+
+Artifacts should support building, not replace building.
+
+### Selective Skill Attachment
+
+Attach skills only when they change how the assigned agent should work.
+
+Use skills when:
+
+- the task needs a concrete checklist or playbook
+- the task touches a domain with known failure modes
+- review requires specific validation expectations
+- the skill will improve output quality enough to justify the context
+
+Do not attach skills when:
+
+- the work is simple repo ops
+- the task is purely mechanical
+- the skill would add context but no decision value
+- the request can be handled by existing role guidance
+
+When a task lists skills, keep the skill list short and relevant.
+
+### Agent Selection
+
+Choose agents by work type:
+
+- `orchestrator`: task design, dependency planning, routing, status summaries, and board continuation decisions.
+- `builder`: implementation, tests, scripts, dashboard UI changes, parser/API work, and focused technical fixes.
+- `reviewer`: validation, approval, regression checks, acceptance-criteria proof, and follow-up recommendations.
+- `content-creator`: documentation, copy, playbooks, guides, and reusable Markdown artifacts.
+- `ux-ui`: usability, hierarchy, interaction design, responsive behavior, accessibility expectations, and roadmap guidance before frontend implementation.
+- `workflow-runner`: sequentially process ready/review tasks after orchestration when the user asks to continue or actionable board work exists.
+- `repo-ops`: git status, branch, commit, push, log, and PR hygiene outside project task workflow.
+
+Do not assign tasks to inactive agents. Do not use a specialist when the base role can execute the work cleanly.
+
+### Avoid Bad Tasks
+
+Avoid creating tasks that are:
+
+- broad or vague
+- missing measurable acceptance criteria
+- missing expected files when the scope is known
+- duplicates of completed or in-progress work
+- assigned to the wrong agent
+- dependent on unfinished work but placed in ready
+- artifact-only without reusable value
+- skill-heavy without clear skill value
+- large enough that review cannot reasonably validate it
+
+### Preserve Build Velocity
+
+The orchestrator should keep momentum toward useful product work.
+
+- Prefer implementation over process when requirements are clear.
+- Use preflight to avoid duplicate work.
+- Keep task files compact.
+- Avoid mandatory self-audits or heavyweight scorecards unless a future task explicitly adds them.
+- Do not add hooks, parallel execution, MCP integrations, or background automation without explicit user direction.
+- Treat workflow hardening as worthwhile only when it prevents real waste or regressions.
 
 ## Completion And Reporting
 

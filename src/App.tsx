@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { KeyboardEvent } from "react";
 import type {
   AgentBoard,
   AgentBoardTask,
@@ -67,6 +68,19 @@ const workflowColumns: Array<{
 
 const actionableColumnIds: TaskStatus[] = ["ready", "in-progress", "review", "blocked"];
 const donePreviewLimit = 4;
+type BoardFocus = {
+  agent: string;
+  priority: string;
+  risk: string;
+  statusGroup: string;
+};
+
+const defaultBoardFocus: BoardFocus = {
+  agent: "all",
+  priority: "all",
+  risk: "all",
+  statusGroup: "all",
+};
 
 export function App() {
   const [board, setBoard] = useState<AgentBoard | null>(null);
@@ -83,6 +97,8 @@ export function App() {
   const [validation, setValidation] = useState<ValidationResponse | null>(null);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [isValidating, setIsValidating] = useState(false);
+  const [boardFocus, setBoardFocus] = useState<BoardFocus>(defaultBoardFocus);
+  const selectedTaskTriggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -168,6 +184,44 @@ export function App() {
     });
   }, [board]);
   const selectedTask = board?.tasks.find((task) => task.id === selectedTaskId) ?? null;
+  const focusOptions = useMemo(() => {
+    const tasks = board?.tasks ?? [];
+
+    return {
+      agents: uniqueSorted(tasks.map((task) => task.assignedAgent).filter(Boolean)),
+      priorities: uniqueSorted(tasks.map((task) => task.priority || "medium").filter(Boolean)),
+    };
+  }, [board]);
+  const isFocusActive = !isDefaultBoardFocus(boardFocus);
+  const focusedColumns = useMemo(() => {
+    if (!board) {
+      return null;
+    }
+
+    const columns = createEmptyTaskColumns();
+    for (const column of workflowColumns) {
+      columns[column.id] = board.columns[column.id].filter((task) => taskMatchesBoardFocus(task, boardFocus, doneIds));
+    }
+
+    return columns;
+  }, [board, boardFocus, doneIds]);
+  const focusedTaskCount = workflowColumns.reduce((count, column) => {
+    return count + (focusedColumns?.[column.id].length ?? 0);
+  }, 0);
+  const selectTask = useCallback((taskId: string, trigger?: HTMLElement | null) => {
+    if (trigger) {
+      selectedTaskTriggerRef.current = trigger;
+    }
+
+    setSelectedTaskId(taskId);
+  }, []);
+  const closeTaskDetail = useCallback(() => {
+    setSelectedTaskId(null);
+    window.requestAnimationFrame(() => {
+      selectedTaskTriggerRef.current?.focus();
+      selectedTaskTriggerRef.current = null;
+    });
+  }, []);
 
   return (
     <main className={`min-h-screen bg-stone-50 text-stone-950 dark:bg-stone-950 dark:text-stone-100 ${isDarkMode ? "dark" : ""}`}>
@@ -201,7 +255,9 @@ export function App() {
         <ValidationPanel
           error={validationError}
           isValidating={isValidating}
+          onSelectTask={(taskId, trigger) => selectTask(taskId, trigger)}
           onRefresh={() => void runValidation()}
+          tasks={board?.tasks ?? []}
           validation={validation}
         />
         {error ? <ErrorState message={error} /> : null}
@@ -210,12 +266,20 @@ export function App() {
           doneIds={doneIds}
           isLoading={isLoading}
           items={activeWorkItems}
-          onSelectTask={(taskId) => setSelectedTaskId(taskId)}
+          onSelectTask={(taskId, trigger) => selectTask(taskId, trigger)}
           selectedTaskId={selectedTaskId}
+        />
+        <BoardFocusControls
+          focus={boardFocus}
+          isLoading={isLoading}
+          isActive={isFocusActive}
+          onChange={setBoardFocus}
+          options={focusOptions}
+          totalMatches={focusedTaskCount}
         />
         <div className="grid min-w-0 gap-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {workflowColumns.map((column) => {
-            const columnTasks = board?.columns[column.id] ?? [];
+            const columnTasks = focusedColumns?.[column.id] ?? [];
             const visibleTasks =
               column.id === "done" ? columnTasks.slice(0, donePreviewLimit) : columnTasks;
             const hiddenDoneCount =
@@ -235,7 +299,7 @@ export function App() {
                 <div className="flex min-h-56 flex-col gap-3 px-3 py-3">
                   {isLoading ? <ColumnLoading /> : null}
                   {!isLoading && columnTasks.length === 0 ? (
-                    <ColumnEmpty label={column.label} />
+                    <ColumnEmpty isFiltered={isFocusActive} label={column.label} />
                   ) : null}
                   {visibleTasks.map((task) => (
                     <TaskCard
@@ -243,7 +307,7 @@ export function App() {
                       doneIds={doneIds}
                       isSelected={task.id === selectedTaskId}
                       key={task.relativePath}
-                      onSelect={() => setSelectedTaskId(task.id)}
+                      onSelect={(trigger) => selectTask(task.id, trigger)}
                       task={task}
                     />
                   ))}
@@ -256,7 +320,7 @@ export function App() {
       </section>
 
       {selectedTask ? (
-        <TaskDetailPanel task={selectedTask} onClose={() => setSelectedTaskId(null)} />
+        <TaskDetailPanel task={selectedTask} onClose={closeTaskDetail} />
       ) : null}
     </main>
   );
@@ -264,6 +328,13 @@ export function App() {
 
 function getWorkflowColumn(columnId: TaskStatus) {
   return workflowColumns.find((column) => column.id === columnId) ?? workflowColumns[0];
+}
+
+function createEmptyTaskColumns() {
+  return workflowColumns.reduce((columns, column) => {
+    columns[column.id] = [];
+    return columns;
+  }, {} as Record<TaskStatus, AgentBoardTask[]>);
 }
 
 function StatusStat({ label, value }: { label: string; value: string }) {
@@ -285,7 +356,7 @@ function ActiveWorkPanel({
   doneIds: Set<string>;
   isLoading: boolean;
   items: Array<{ column: (typeof workflowColumns)[number]; task: AgentBoardTask }>;
-  onSelectTask: (taskId: string) => void;
+  onSelectTask: (taskId: string, trigger?: HTMLElement | null) => void;
   selectedTaskId: string | null;
 }) {
   if (isLoading) {
@@ -323,7 +394,7 @@ function ActiveWorkPanel({
               task.id === selectedTaskId ? "ring-2 ring-inset ring-emerald-500" : ""
             }`}
             key={`active-${task.relativePath}`}
-            onClick={() => onSelectTask(task.id)}
+            onClick={(event) => onSelectTask(task.id, event.currentTarget)}
             type="button"
           >
             <span className={column.rail} />
@@ -356,6 +427,123 @@ function ActiveWorkPanel({
         ))}
       </div>
     </section>
+  );
+}
+
+function BoardFocusControls({
+  focus,
+  isActive,
+  isLoading,
+  onChange,
+  options,
+  totalMatches,
+}: {
+  focus: BoardFocus;
+  isActive: boolean;
+  isLoading: boolean;
+  onChange: (focus: BoardFocus) => void;
+  options: { agents: string[]; priorities: string[] };
+  totalMatches: number;
+}) {
+  if (isLoading) {
+    return null;
+  }
+
+  function updateFocus(key: keyof BoardFocus, value: string) {
+    onChange({ ...focus, [key]: value });
+  }
+
+  return (
+    <section className="mb-4 rounded-lg border border-stone-200 bg-white px-4 py-3 dark:border-stone-700 dark:bg-stone-900">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-stone-950 dark:text-stone-100">Board focus</h2>
+          <p className="text-xs leading-5 text-stone-500 dark:text-stone-400">
+            Narrow visible board cards without changing tasks or hiding validation.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+          <FocusSelect
+            label="Status"
+            onChange={(value) => updateFocus("statusGroup", value)}
+            options={[
+              { label: "All statuses", value: "all" },
+              { label: "Active work", value: "active" },
+              ...workflowColumns.map((column) => ({ label: column.label, value: column.id })),
+            ]}
+            value={focus.statusGroup}
+          />
+          <FocusSelect
+            label="Agent"
+            onChange={(value) => updateFocus("agent", value)}
+            options={[
+              { label: "All agents", value: "all" },
+              ...options.agents.map((agent) => ({ label: agent, value: agent })),
+            ]}
+            value={focus.agent}
+          />
+          <FocusSelect
+            label="Priority"
+            onChange={(value) => updateFocus("priority", value)}
+            options={[
+              { label: "All priorities", value: "all" },
+              ...options.priorities.map((priority) => ({ label: priority, value: priority })),
+            ]}
+            value={focus.priority}
+          />
+          <FocusSelect
+            label="Risk"
+            onChange={(value) => updateFocus("risk", value)}
+            options={[
+              { label: "All tasks", value: "all" },
+              { label: "Blocked deps", value: "blocked-deps" },
+              { label: "Status mismatch", value: "status-mismatch" },
+            ]}
+            value={focus.risk}
+          />
+          <button
+            className="h-9 rounded-lg border border-stone-200 px-3 text-sm font-semibold text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-stone-700 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800 dark:focus:ring-offset-stone-900"
+            disabled={!isActive}
+            onClick={() => onChange(defaultBoardFocus)}
+            type="button"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+      <p className="mt-3 text-xs font-medium text-stone-500 dark:text-stone-400">
+        {isActive ? `${totalMatches} matching task${totalMatches === 1 ? "" : "s"}` : "Showing all board tasks"}
+      </p>
+    </section>
+  );
+}
+
+function FocusSelect({
+  label,
+  onChange,
+  options,
+  value,
+}: {
+  label: string;
+  onChange: (value: string) => void;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+}) {
+  return (
+    <label className="flex min-w-36 flex-col gap-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
+      {label}
+      <select
+        className="h-9 rounded-lg border border-stone-200 bg-white px-2 text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:border-stone-700 dark:bg-stone-950 dark:text-stone-100"
+        onChange={(event) => onChange(event.target.value)}
+        value={value}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -443,12 +631,16 @@ function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode: boolean; onToggle: 
 function ValidationPanel({
   error,
   isValidating,
+  onSelectTask,
   onRefresh,
+  tasks,
   validation,
 }: {
   error: string | null;
   isValidating: boolean;
+  onSelectTask: (taskId: string, trigger?: HTMLElement | null) => void;
   onRefresh: () => void;
+  tasks: AgentBoardTask[];
   validation: ValidationResponse | null;
 }) {
   const hasData = validation && "data" in validation;
@@ -464,6 +656,9 @@ function ValidationPanel({
     : isPassing
       ? "Validation passing"
       : "Validation needs attention";
+  const taskByPath = useMemo(() => {
+    return new Map(tasks.map((task) => [task.relativePath, task]));
+  }, [tasks]);
 
   return (
     <section className={`mb-4 rounded-lg border px-4 py-3 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-100 ${statusClass}`}>
@@ -476,6 +671,11 @@ function ValidationPanel({
               : "Validation has not completed yet."}
           </p>
           {error ? <p className="mt-2 text-xs font-medium text-red-700 dark:text-red-300">{error}</p> : null}
+          {!isPassing && issues.length > 0 ? (
+            <p className="mt-2 text-xs font-medium leading-5">
+              Next action: inspect the affected task, correct its frontmatter or folder placement, then refresh validation.
+            </p>
+          ) : null}
         </div>
         <button
           className="w-fit rounded-lg border border-current px-3 py-2 text-sm font-semibold transition-colors hover:bg-white/60 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-stone-800 dark:focus:ring-offset-stone-900"
@@ -489,12 +689,29 @@ function ValidationPanel({
 
       {issues.length > 0 ? (
         <div className="mt-3 space-y-2">
-          {issues.map((issue) => (
-            <div className="rounded-md border border-amber-200 bg-white/70 px-3 py-2 dark:border-amber-700 dark:bg-stone-800" key={`${issue.file}:${issue.message}`}>
-              <p className="break-all text-xs font-semibold text-stone-700 dark:text-stone-200">{issue.file}</p>
-              <p className="mt-1 text-xs text-stone-600 dark:text-stone-300">{issue.message}</p>
-            </div>
-          ))}
+          {issues.map((issue) => {
+            const matchingTask = taskByPath.get(issue.file);
+
+            return (
+              <div className="rounded-md border border-amber-200 bg-white/70 px-3 py-2 dark:border-amber-700 dark:bg-stone-800" key={`${issue.file}:${issue.message}`}>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="break-all text-xs font-semibold text-stone-700 dark:text-stone-200">{issue.file}</p>
+                    <p className="mt-1 text-xs text-stone-600 dark:text-stone-300">{issue.message}</p>
+                  </div>
+                  {matchingTask ? (
+                    <button
+                      className="w-fit shrink-0 rounded-md border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:border-amber-700 dark:text-amber-100 dark:hover:bg-stone-700 dark:focus:ring-offset-stone-900"
+                      onClick={(event) => onSelectTask(matchingTask.id, event.currentTarget)}
+                      type="button"
+                    >
+                      Open task
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : null}
     </section>
@@ -511,7 +728,7 @@ function TaskCard({
   column: (typeof workflowColumns)[number];
   doneIds: Set<string>;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (trigger?: HTMLButtonElement | null) => void;
   task: AgentBoardTask;
 }) {
   const dependencyLabel = getDependencyLabel(task, doneIds);
@@ -524,7 +741,7 @@ function TaskCard({
       className={`group relative min-w-0 overflow-hidden rounded-lg border bg-white text-left shadow-sm transition-colors hover:border-stone-300 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:bg-stone-900 dark:hover:border-stone-600 dark:focus:ring-offset-stone-950 ${
         isSelected ? "border-emerald-400" : "border-stone-200"
       } dark:border-stone-700`}
-      onClick={onSelect}
+      onClick={(event) => onSelect(event.currentTarget)}
       type="button"
     >
       <div className={`absolute inset-y-0 left-0 w-1 ${column.rail}`} />
@@ -634,10 +851,10 @@ function ColumnLoading() {
   );
 }
 
-function ColumnEmpty({ label }: { label: string }) {
+function ColumnEmpty({ isFiltered = false, label }: { isFiltered?: boolean; label: string }) {
   return (
     <div className="rounded-lg border border-dashed border-stone-200 bg-white/70 px-4 py-6 text-center text-sm text-stone-500 dark:border-stone-700 dark:bg-stone-900/70 dark:text-stone-400">
-      No {label.toLowerCase()} tasks
+      {isFiltered ? `No ${label.toLowerCase()} tasks match focus controls` : `No ${label.toLowerCase()} tasks`}
     </div>
   );
 }
@@ -664,7 +881,50 @@ function getDependencyLabel(task: AgentBoardTask, doneIds: Set<string>) {
   return `${task.dependsOn.length} dep${task.dependsOn.length === 1 ? "" : "s"} done`;
 }
 
+function taskMatchesBoardFocus(task: AgentBoardTask, focus: BoardFocus, doneIds: Set<string>) {
+  if (focus.statusGroup === "active" && !actionableColumnIds.includes(task.folderStatus)) {
+    return false;
+  }
+
+  if (focus.statusGroup !== "all" && focus.statusGroup !== "active" && task.folderStatus !== focus.statusGroup) {
+    return false;
+  }
+
+  if (focus.agent !== "all" && task.assignedAgent !== focus.agent) {
+    return false;
+  }
+
+  if (focus.priority !== "all" && (task.priority || "medium") !== focus.priority) {
+    return false;
+  }
+
+  if (focus.risk === "blocked-deps" && !getDependencyLabel(task, doneIds).includes("blocked")) {
+    return false;
+  }
+
+  if (focus.risk === "status-mismatch" && task.statusMatchesFolder) {
+    return false;
+  }
+
+  return true;
+}
+
+function isDefaultBoardFocus(focus: BoardFocus) {
+  return (
+    focus.agent === defaultBoardFocus.agent &&
+    focus.priority === defaultBoardFocus.priority &&
+    focus.risk === defaultBoardFocus.risk &&
+    focus.statusGroup === defaultBoardFocus.statusGroup
+  );
+}
+
+function uniqueSorted(values: string[]) {
+  return Array.from(new Set(values)).sort((left, right) => left.localeCompare(right));
+}
+
 function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBoardTask }) {
+  const panelRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const sectionsToShow = [
     "Objective",
     "Acceptance Criteria",
@@ -674,6 +934,43 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
     "Completion Notes",
   ];
 
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onClose();
+      return;
+    }
+
+    if (event.key !== "Tab" || !panelRef.current) {
+      return;
+    }
+
+    const focusable = Array.from(
+      panelRef.current.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((element) => !element.hasAttribute("disabled"));
+
+    if (focusable.length === 0) {
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-20 flex justify-end bg-stone-950/20 dark:bg-stone-950/70">
       <button
@@ -682,7 +979,13 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
         onClick={onClose}
         type="button"
       />
-      <aside className="relative flex h-full w-full max-w-2xl flex-col border-l border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900">
+      <aside
+        aria-modal="true"
+        className="relative flex h-full w-full max-w-2xl flex-col border-l border-stone-200 bg-white shadow-xl dark:border-stone-700 dark:bg-stone-900"
+        onKeyDown={handleKeyDown}
+        ref={panelRef}
+        role="dialog"
+      >
         <header className="border-b border-stone-200 px-5 py-4 dark:border-stone-800">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -693,6 +996,7 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
             <button
               className="rounded-lg border border-stone-200 px-3 py-2 text-sm font-medium text-stone-700 transition-colors hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:ring-offset-2 dark:border-stone-700 dark:text-stone-200 dark:hover:border-stone-600 dark:hover:bg-stone-800 dark:focus:ring-offset-stone-900"
               onClick={onClose}
+              ref={closeButtonRef}
               type="button"
             >
               Close
@@ -713,6 +1017,9 @@ function TaskDetailPanel({ onClose, task }: { onClose: () => void; task: AgentBo
             {(task.skills ?? []).length > 0 ? <MetadataListItem label="Skills" values={task.skills ?? []} /> : null}
             {(task.expectedFiles ?? []).length > 0 ? (
               <MetadataListItem label="Expected Files" values={task.expectedFiles ?? []} breakAll />
+            ) : null}
+            {(task.artifacts ?? []).length > 0 ? (
+              <MetadataListItem label="Artifacts" values={task.artifacts ?? []} breakAll />
             ) : null}
             {task.parallelSafe != null ? (
               <MetadataItem

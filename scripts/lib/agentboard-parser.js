@@ -23,6 +23,7 @@ const TASK_STATUSES = ["inbox", "ready", "in-progress", "review", "done", "block
  * @property {string[]} skills
  * @property {string[]} expectedFiles
  * @property {boolean | null} parallelSafe
+ * @property {string[]} artifacts
  * @property {string} createdBy
  * @property {string} filePath
  * @property {string} relativePath
@@ -68,6 +69,11 @@ function readBoard(root = process.cwd()) {
     }
   }
 
+  const artifactsByTaskId = readArtifactsByTaskId(root);
+  for (const task of tasks) {
+    task.artifacts = artifactsByTaskId.get(task.id) || [];
+  }
+
   tasks.sort(compareTasks);
   for (const status of TASK_STATUSES) {
     columns[status].sort(compareTasks);
@@ -104,6 +110,7 @@ function parseTaskContent(content, options) {
     skills: normalizeList(frontmatter.skills),
     expectedFiles: normalizeList(frontmatter.expected_files),
     parallelSafe: normalizeBooleanMetadata(frontmatter.parallel_safe),
+    artifacts: [],
     createdBy: stringify(frontmatter.created_by),
     filePath: options.filePath,
     relativePath: toRelativePath(options.root, options.filePath),
@@ -111,6 +118,33 @@ function parseTaskContent(content, options) {
     body,
     sections: parseMarkdownSections(body),
   };
+}
+
+function readArtifactsByTaskId(root = process.cwd()) {
+  const artifactsDir = path.join(root, ".agentboard", "artifacts");
+  const artifactsByTaskId = new Map();
+
+  if (!fs.existsSync(artifactsDir)) {
+    return artifactsByTaskId;
+  }
+
+  for (const entry of fs.readdirSync(artifactsDir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".md")) {
+      continue;
+    }
+
+    const match = entry.name.match(/^(TASK-\d+)/);
+    if (!match) {
+      continue;
+    }
+
+    const artifactPath = toRelativePath(root, path.join(artifactsDir, entry.name));
+    const existing = artifactsByTaskId.get(match[1]) || [];
+    existing.push(artifactPath);
+    artifactsByTaskId.set(match[1], existing.sort());
+  }
+
+  return artifactsByTaskId;
 }
 
 function parseMarkdownSections(body) {
@@ -249,5 +283,6 @@ module.exports = {
   readSkillRegistry,
   parseTaskContent,
   parseTaskFile,
+  readArtifactsByTaskId,
   readBoard,
 };

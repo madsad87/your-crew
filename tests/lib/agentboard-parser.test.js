@@ -15,6 +15,7 @@ try {
   for (const status of TASK_STATUSES) {
     fs.mkdirSync(path.join(root, ".agentboard", status), { recursive: true });
   }
+  fs.mkdirSync(path.join(root, ".agentboard", "artifacts"), { recursive: true });
 
   fs.writeFileSync(
     path.join(root, ".agentboard", "ready", "TASK-0001-sample.md"),
@@ -38,6 +39,10 @@ try {
       "- [ ] Works",
       "",
     ].join("\n"),
+  );
+  fs.writeFileSync(
+    path.join(root, ".agentboard", "artifacts", "TASK-0001-sample-artifact.md"),
+    "# Sample Artifact\n",
   );
 
   fs.writeFileSync(
@@ -75,6 +80,7 @@ try {
   assert.equal(sample.priority, "high");
   assert.deepEqual(sample.dependsOn, ["TASK-0000"]);
   assert.equal(sample.relativePath, ".agentboard/ready/TASK-0001-sample.md");
+  assert.deepEqual(sample.artifacts, [".agentboard/artifacts/TASK-0001-sample-artifact.md"]);
   assert.equal(sample.sections.Objective.content, "Build a sample task.");
   assert.equal(sample.sections["Acceptance Criteria"].content, "- [ ] Works");
 
